@@ -20,20 +20,24 @@
             "sub_path": "process/fdm_process_common.json"
         },
         {
-            "name": "0.12mm Fine @Escaloplab v80",
-            "sub_path": "process/0.12mm Fine @Escaloplab v80.json"
+            "name": "0.10mm Detail @Escaloplab v80",
+            "sub_path": "process/0.10mm Detail @Escaloplab v80.json"
         },
         {
-            "name": "0.16mm Optimal @Escaloplab v80",
-            "sub_path": "process/0.16mm Optimal @Escaloplab v80.json"
+            "name": "0.15mm Quality @Escaloplab v80",
+            "sub_path": "process/0.15mm Quality @Escaloplab v80.json"
         },
         {
             "name": "0.20mm Standard @Escaloplab v80",
             "sub_path": "process/0.20mm Standard @Escaloplab v80.json"
         },
         {
-            "name": "0.28mm Draft @Escaloplab v80",
-            "sub_path": "process/0.28mm Draft @Escaloplab v80.json"
+            "name": "0.20mm Speed @Escaloplab v80",
+            "sub_path": "process/0.20mm Speed @Escaloplab v80.json"
+        },
+        {
+            "name": "0.30mm Draft @Escaloplab v80",
+            "sub_path": "process/0.30mm Draft @Escaloplab v80.json"
         }
     ],
     "filament_list": [],

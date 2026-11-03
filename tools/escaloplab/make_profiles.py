@@ -2,14 +2,13 @@
 """
 Generates the Escaloplab vendor profiles (resources/profiles/Escaloplab*).
 
-The v80 comes in bed sizes and with a Bowden or direct-drive extruder; each
-combination is a printer model with its own 0.4 mm nozzle preset. Print
-qualities are shared by every v80. Filaments use OrcaSlicer's generic PLA,
-PETG and TPU until Escaloplab's own calibrated filament profiles exist.
-
-Starting values come from the v80's published specs (210 x 210 x 200 mm,
-255 C hotend, 90 C bed, 80+ mm/s, Marlin with auto bed leveling). Values marked
-CALIBRATE are first guesses to be replaced after test prints.
+The v80 (210 x 210 x 200 mm bed, Marlin with auto bed leveling) comes with a
+Bowden or a direct-drive extruder; each is a printer model with a 0.4 mm nozzle
+preset. At the owner's request the motion limits, retraction and print
+qualities are the Prusa MK3S 0.4 ones, read from resources/profiles/Prusa when
+this runs. Prusa-firmware-only G-code (M862, G80, M907) is replaced by Marlin
+equivalents. The Bowden version keeps a longer retraction, which a Bowden tube
+needs. Filaments use OrcaSlicer's generic PLA, PETG and TPU.
 
 Run from the repo root:
     python tools/escaloplab/make_profiles.py
@@ -32,40 +31,79 @@ MODELS = [
     ("Escaloplab v80 Direct", 210, 210, 200, "direct"),
 ]
 
-# Retraction per extruder type (CALIBRATE with Orca's retraction test)
-RETRACT = {"bowden": {"length": "5", "speed": "40"}, "direct": {"length": "0.8", "speed": "35"}}
+PRUSA_PRINTER = "Prusa MK3S 0.4 nozzle"
+# The MK3S print qualities for a 0.4 mm nozzle, with the name they get on the v80
+PRUSA_QUALITIES = [
+    ("0.10mm Detail @MK3S 0.4", "0.10mm Detail"),
+    ("0.15mm Quality @MK3S 0.4", "0.15mm Quality"),
+    ("0.20mm Standard @MK3S 0.4", "0.20mm Standard"),
+    ("0.20mm Speed @MK3S 0.4", "0.20mm Speed"),
+    ("0.30mm Draft @MK3S 0.4", "0.30mm Draft"),
+]
+# Copied from the MK3S printer preset
+PRUSA_MACHINE_KEYS = [
+    "machine_max_acceleration_e", "machine_max_acceleration_extruding", "machine_max_acceleration_retracting",
+    "machine_max_acceleration_travel", "machine_max_acceleration_x", "machine_max_acceleration_y",
+    "machine_max_acceleration_z", "machine_max_speed_e", "machine_max_speed_x", "machine_max_speed_y",
+    "machine_max_speed_z", "machine_max_jerk_e", "machine_max_jerk_x", "machine_max_jerk_y", "machine_max_jerk_z",
+    "max_layer_height", "min_layer_height", "retraction_minimum_travel", "retract_before_wipe",
+    "retract_when_changing_layer", "retract_length_toolchange", "retract_restart_extra",
+    "retract_restart_extra_toolchange", "z_hop", "wipe", "layer_change_gcode", "before_layer_change_gcode",
+]
+META_KEYS = {"type", "name", "inherits", "from", "setting_id", "instantiation", "compatible_printers",
+             "compatible_printers_condition", "print_settings_id", "renamed_from"}
 
+
+def prusa(kind, name):
+    """A Prusa preset with everything it inherits merged in."""
+    files = {}
+    for f in (OUT / "Prusa" / kind).glob("*.json"):
+        d = json.loads(f.read_text(encoding="utf-8"))
+        files[d["name"]] = d
+
+    def resolve(n):
+        d = files[n]
+        out = resolve(d["inherits"]) if d.get("inherits") in files else {}
+        out.update(d)
+        return out
+
+    return resolve(name)
+
+
+# Retraction: direct drive = the MK3S (also direct drive); a Bowden tube needs more
+RETRACT = {"bowden": {"length": "5", "speed": "40"}, "direct": {"length": "0.8", "speed": "30"}}
+
+# The MK3S start sequence for Marlin: G29 auto bed leveling instead of Prusa's G80
 START_GCODE = "\n".join([
-    "; Escaloplab v80 start",
-    "M140 S[bed_temperature_initial_layer_single] ; start heating the bed",
-    "M104 S150 ; warm the nozzle without oozing",
-    "G90 ; absolute coordinates",
-    "M83 ; relative extrusion",
+    "; Escaloplab v80 start (Prusa MK3S sequence, Marlin commands)",
+    "G90 ; use absolute coordinates",
+    "M83 ; extruder relative mode",
+    "M104 S[first_layer_temperature] ; set extruder temp",
+    "M140 S[first_layer_bed_temperature] ; set bed temp",
+    "M190 S[first_layer_bed_temperature] ; wait for bed temp",
+    "M109 S[first_layer_temperature] ; wait for extruder temp",
     "G28 ; home all axes",
-    "M190 S[bed_temperature_initial_layer_single] ; wait for the bed",
-    "G29 ; auto bed leveling (CALIBRATE: confirm the printer's Marlin leveling type)",
-    "G1 X3 Y10 Z5 F3000",
-    "M109 S[nozzle_temperature_initial_layer] ; wait for the nozzle",
-    "G1 Z0.28 F240",
+    "G29 ; auto bed leveling",
+    "G1 Z0.2 F720",
+    "G1 X0 Y1 F3000 ; front edge of the bed",
     "G92 E0",
-    "G1 Y150 E12 F1500 ; prime line",
-    "G1 X3.4 F5000",
-    "G1 Y20 E12 F1200 ; second prime line",
+    "G1 X60 E9 F1000 ; intro line",
+    "G1 X100 E12.5 F1000 ; intro line",
     "G92 E0",
+    "M221 S{if layer_height<0.075}100{else}95{endif}",
 ])
 
 END_GCODE = "\n".join([
-    "; Escaloplab v80 end",
-    "G91 ; relative moves",
-    "G1 E-2 F2700 ; retract",
-    "G1 Z5 F600 ; lift",
-    "G90",
-    "{if max_layer_z < printable_height-10}G1 Z{min(max_layer_z+10, printable_height-10)} F600{endif}",
-    "G1 X5 Y{print_bed_max[1]*0.85} F{travel_speed*60} ; present the print",
-    "M140 S0 ; bed off",
-    "M104 S0 ; nozzle off",
-    "M107 ; fan off",
-    "M84 X Y E ; motors off",
+    "{if max_layer_z < max_print_height}G1 Z{z_offset+min(max_layer_z+1, max_print_height)} F720 ; Move print head up{endif}",
+    "G1 X0 Y200 F3600 ; park",
+    "{if max_layer_z < max_print_height}G1 Z{z_offset+min(max_layer_z+49, max_print_height)} F720 ; Move print head further up{endif}",
+    "G4 ; wait",
+    "M221 S100 ; reset flow",
+    "M104 S0 ; turn off temperature",
+    "M140 S0 ; turn off heatbed",
+    "M107 ; turn off fan",
+    "M84 ; disable motors",
+    "; max_layer_z = [max_layer_z]",
 ])
 
 
@@ -75,7 +113,9 @@ def dump(path: Path, data):
 
 
 def machine_common():
+    mk3s = prusa("machine", PRUSA_PRINTER)
     return {
+        **{k: mk3s[k] for k in PRUSA_MACHINE_KEYS},
         "type": "machine",
         "name": "fdm_machine_common",
         "from": "system",
@@ -86,37 +126,9 @@ def machine_common():
         "extruder_offset": ["0x0"],
         "nozzle_diameter": ["0.4"],
         "printer_variant": "0.4",
-        # Motion limits (CALIBRATE: read the real values with M503)
-        "machine_max_acceleration_e": ["5000"],
-        "machine_max_acceleration_extruding": ["1000"],
-        "machine_max_acceleration_retracting": ["1000"],
-        "machine_max_acceleration_travel": ["1500"],
-        "machine_max_acceleration_x": ["1000"],
-        "machine_max_acceleration_y": ["1000"],
-        "machine_max_acceleration_z": ["100"],
-        "machine_max_speed_e": ["60"],
-        "machine_max_speed_x": ["300"],
-        "machine_max_speed_y": ["300"],
-        "machine_max_speed_z": ["10"],
-        "machine_max_jerk_e": ["5"],
-        "machine_max_jerk_x": ["8"],
-        "machine_max_jerk_y": ["8"],
-        "machine_max_jerk_z": ["0.4"],
-        "machine_min_extruding_rate": ["0"],
-        "machine_min_travel_rate": ["0"],
-        "max_layer_height": ["0.32"],
-        "min_layer_height": ["0.08"],
         "extruder_clearance_radius": "45",
         "extruder_clearance_height_to_rod": "30",
         "extruder_clearance_height_to_lid": "120",
-        "retraction_minimum_travel": ["2"],
-        "retract_before_wipe": ["70%"],
-        "retract_when_changing_layer": ["1"],
-        "retract_length_toolchange": ["1"],
-        "retract_restart_extra": ["0"],
-        "retract_restart_extra_toolchange": ["0"],
-        "z_hop": ["0.2"],
-        "wipe": ["1"],
         "single_extruder_multi_material": "1",
         "change_filament_gcode": "M600",
         "machine_pause_gcode": "M0",
@@ -170,15 +182,6 @@ def printer_preset(name, x, y, h, drive):
     }
 
 
-# Print qualities: (name, layer height, first layer, outer, inner, infill, top) in mm and mm/s
-QUALITIES = [
-    ("0.12mm Fine", "0.12", "0.2", "35", "60", "80", "35"),
-    ("0.16mm Optimal", "0.16", "0.2", "40", "65", "85", "35"),
-    ("0.20mm Standard", "0.2", "0.2", "45", "70", "90", "40"),
-    ("0.28mm Draft", "0.28", "0.28", "50", "80", "100", "45"),
-]
-
-
 def process_common():
     return {
         "type": "process",
@@ -186,64 +189,19 @@ def process_common():
         "from": "system",
         "instantiation": "false",
         "print_settings_id": "",
-        "line_width": "0.45",
-        "outer_wall_line_width": "0.42",
-        "inner_wall_line_width": "0.45",
-        "initial_layer_line_width": "0.5",
-        "sparse_infill_line_width": "0.45",
-        "internal_solid_infill_line_width": "0.42",
-        "top_surface_line_width": "0.4",
-        "support_line_width": "0.4",
-        "wall_loops": "3",
-        "top_shell_layers": "5",
-        "top_shell_thickness": "0.8",
-        "bottom_shell_layers": "4",
-        "sparse_infill_density": "15%",
-        "sparse_infill_pattern": "grid",
-        "top_surface_pattern": "monotonicline",
-        "bottom_surface_pattern": "monotonic",
-        "seam_position": "aligned",
-        "wall_infill_order": "inner wall/outer wall/infill",
-        "detect_overhang_wall": "1",
-        "detect_thin_wall": "1",
-        "elefant_foot_compensation": "0.1",
-        "initial_layer_speed": "25",
-        "initial_layer_infill_speed": "40",
-        "internal_solid_infill_speed": "70",
-        "gap_infill_speed": "40",
-        "bridge_speed": "25",
-        "support_speed": "60",
-        "travel_speed": "150",
-        "default_acceleration": "1000",
-        "outer_wall_acceleration": "800",
-        "inner_wall_acceleration": "1000",
-        "initial_layer_acceleration": "500",
-        "top_surface_acceleration": "800",
-        "travel_acceleration": "1500",
-        "skirt_loops": "2",
-        "skirt_distance": "4",
-        "brim_width": "0",
-        "enable_support": "0",
-        "support_type": "normal(auto)",
-        "support_threshold_angle": "30",
-        "enable_prime_tower": "0",
-        "filename_format": "{input_filename_base}_{filament_type[initial_tool]}_{print_time}.gcode",
     }
 
 
-def quality(name, lh, first, outer, inner, infill, top):
+def quality(prusa_name, name):
+    """An MK3S print quality, renamed for the v80 and made compatible with it."""
+    settings = {k: v for k, v in prusa("process", prusa_name).items() if k not in META_KEYS}
     return {
         "type": "process",
         "name": f"{name} @Escaloplab v80",
         "inherits": "fdm_process_common",
         "from": "system",
         "instantiation": "true",
-        "layer_height": lh,
-        "initial_layer_print_height": first,
-        "outer_wall_speed": outer,
-        "inner_wall_speed": inner,
-        "sparse_infill_speed": infill,
-        "top_surface_speed": top,
+        **settings,
         "compatible_printers": [f"{m[0]} 0.4 nozzle" for m in MODELS],
     }
 
@@ -326,8 +284,8 @@ def main():
         machines.append({"name": f"{name} 0.4 nozzle", "sub_path": f"machine/{name} 0.4 nozzle.json"})
         bed_stl(base / f"{slug}_buildplate_model.stl", x, y)
         bed_texture(base / f"{slug}_buildplate_texture.svg", x, y)
-    for q in QUALITIES:
-        p = quality(*q)
+    for prusa_name, name in PRUSA_QUALITIES:
+        p = quality(prusa_name, name)
         dump(base / "process" / f"{p['name']}.json", p)
         processes.append({"name": p["name"], "sub_path": f"process/{p['name']}.json"})
 

@@ -1,0 +1,54 @@
+{
+    "name": "Escaloplab",
+    "url": "https://escaloplab.com",
+    "version": "01.00.00.00",
+    "force_update": "0",
+    "description": "Escaloplab v80 configurations",
+    "machine_model_list": [
+        {
+            "name": "Escaloplab v80",
+            "sub_path": "machine/Escaloplab v80.json"
+        },
+        {
+            "name": "Escaloplab v80 Direct",
+            "sub_path": "machine/Escaloplab v80 Direct.json"
+        }
+    ],
+    "process_list": [
+        {
+            "name": "fdm_process_common",
+            "sub_path": "process/fdm_process_common.json"
+        },
+        {
+            "name": "0.12mm Fine @Escaloplab v80",
+            "sub_path": "process/0.12mm Fine @Escaloplab v80.json"
+        },
+        {
+            "name": "0.16mm Optimal @Escaloplab v80",
+            "sub_path": "process/0.16mm Optimal @Escaloplab v80.json"
+        },
+        {
+            "name": "0.20mm Standard @Escaloplab v80",
+            "sub_path": "process/0.20mm Standard @Escaloplab v80.json"
+        },
+        {
+            "name": "0.28mm Draft @Escaloplab v80",
+            "sub_path": "process/0.28mm Draft @Escaloplab v80.json"
+        }
+    ],
+    "filament_list": [],
+    "machine_list": [
+        {
+            "name": "fdm_machine_common",
+            "sub_path": "machine/fdm_machine_common.json"
+        },
+        {
+            "name": "Escaloplab v80 0.4 nozzle",
+            "sub_path": "machine/Escaloplab v80 0.4 nozzle.json"
+        },
+        {
+            "name": "Escaloplab v80 Direct 0.4 nozzle",
+            "sub_path": "machine/Escaloplab v80 Direct 0.4 nozzle.json"
+        }
+    ]
+}

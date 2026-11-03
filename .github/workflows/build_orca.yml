@@ -245,9 +245,10 @@ jobs:
           source ${{ github.workspace }}/scripts/retry.sh
           mkdir -p ${{ github.workspace }}/build/universal/OrcaSlicer_dmg
           rm -rf ${{ github.workspace }}/build/universal/OrcaSlicer_dmg/*
-          cp -R ${{ github.workspace }}/build/universal/OrcaSlicer/OrcaSlicer.app ${{ github.workspace }}/build/universal/OrcaSlicer_dmg/
+          # Escalop Workshop: the app keeps its internal bundle, shown as "Escalop Workshop" in Applications
+          cp -R ${{ github.workspace }}/build/universal/OrcaSlicer/OrcaSlicer.app "${{ github.workspace }}/build/universal/OrcaSlicer_dmg/Escalop Workshop.app"
           ln -sfn /Applications ${{ github.workspace }}/build/universal/OrcaSlicer_dmg/Applications
-          retry hdiutil create -volname "OrcaSlicer" -srcfolder ${{ github.workspace }}/build/universal/OrcaSlicer_dmg -ov -format UDZO OrcaSlicer_Mac_universal_${{ env.ver }}.dmg
+          retry hdiutil create -volname "Escalop Workshop" -srcfolder ${{ github.workspace }}/build/universal/OrcaSlicer_dmg -ov -format UDZO EscalopWorkshop_Mac_universal_${{ env.ver }}.dmg
           
           # Create separate OrcaSlicer_profile_validator DMG if the app exists
           if [ -f "${{ github.workspace }}/build/universal/OrcaSlicer/OrcaSlicer_profile_validator.app/Contents/MacOS/OrcaSlicer_profile_validator" ]; then
@@ -272,8 +273,8 @@ jobs:
         if: runner.os == 'macOS' && inputs.macos-combine-only
         uses: actions/upload-artifact@v7
         with:
-          name: OrcaSlicer_Mac_universal_${{ env.ver }}
-          path: ${{ github.workspace }}/OrcaSlicer_Mac_universal_${{ env.ver }}.dmg
+          name: EscalopWorkshop_Mac_universal_${{ env.ver }}
+          path: ${{ github.workspace }}/EscalopWorkshop_Mac_universal_${{ env.ver }}.dmg
 
       - name: Upload OrcaSlicer_profile_validator DMG mac
         if: runner.os == 'macOS' && inputs.macos-combine-only && !vars.SELF_HOSTED
@@ -371,8 +372,8 @@ jobs:
         if: runner.os == 'Windows' && !vars.SELF_HOSTED
         uses: actions/upload-artifact@v7
         with:
-          name: OrcaSlicer_Windows_${{ env.ver }}${{ env.ARCH_SUFFIX }}
-          path: ${{ github.workspace }}/${{ env.BUILD_DIR }}/OrcaSlicer*.exe
+          name: EscalopWorkshop_Windows_${{ env.ver }}${{ env.ARCH_SUFFIX }}
+          path: ${{ github.workspace }}/${{ env.BUILD_DIR }}/EscalopWorkshop*.exe
 
       - name: Upload artifacts Win PDB
         if: runner.os == 'Windows' && inputs.arch != 'arm64' && !vars.SELF_HOSTED

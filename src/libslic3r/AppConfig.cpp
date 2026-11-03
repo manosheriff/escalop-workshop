@@ -40,7 +40,9 @@ using namespace nlohmann;
 
 namespace Slic3r {
 
-static const std::string VERSION_CHECK_URL = "https://check-version.orcaslicer.com/latest";
+// Escalop Workshop: new versions are the GitHub releases of Escaloplab's fork (GitHub release-list JSON,
+// which GUI_App::check_new_version_sf already understands).
+static const std::string VERSION_CHECK_URL = "https://api.github.com/repos/manosheriff/escalop-workshop/releases";
 static const std::string PROFILE_UPDATE_URL = "https://check-version.orcaslicer.com/profile";
 static const std::string MODELS_STR = "models";
 

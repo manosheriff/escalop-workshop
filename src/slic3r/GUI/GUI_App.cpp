@@ -5665,7 +5665,7 @@ void GUI_App::check_new_version_sf(bool show_tips, int by_user)
             boost::property_tree::read_json(json_stream, root);
 
             std::regex matcher("[0-9]+\\.[0-9]+(\\.[0-9]+)*(-[A-Za-z0-9]+)?(\\+[A-Za-z0-9]+)?");
-            Semver    current_version = get_version(SoftFever_VERSION, matcher);
+            Semver    current_version = get_version(ESCALOP_VERSION, matcher);
             Semver    best_pre(0, 0, 0);
             Semver    best_release(0, 0, 0);
             bool      best_pre_valid = false;

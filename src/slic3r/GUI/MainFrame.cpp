@@ -2809,7 +2809,7 @@ void MainFrame::init_menubar_as_editor()
         append_submenu(fileMenu, export_menu, wxID_ANY, _L("Export"), "");
 
         fileMenu->AppendSeparator();
-        append_menu_item(fileMenu, wxID_ANY, _L("Sync Presets"), _L("Pull and apply the latest presets from OrcaCloud"),
+        append_menu_item(fileMenu, wxID_ANY, _L("Sync Presets"), _L("Pull and apply the latest presets from Escaloplab account"),
             [this](wxCommandEvent&) {
                 if (!wxGetApp().is_user_login()) {
                     MessageDialog info_dlg(this, _L("You must be logged in to sync presets from cloud."),
@@ -3299,7 +3299,7 @@ void MainFrame::init_menubar_as_editor()
         "", nullptr, []() { return true; }, this);
 
     append_menu_item(
-        m_topbar->GetTopMenu(), wxID_ANY, _L("Sync Presets"), _L("Pull and apply the latest presets from OrcaCloud"),
+        m_topbar->GetTopMenu(), wxID_ANY, _L("Sync Presets"), _L("Pull and apply the latest presets from Escaloplab account"),
         [this](wxCommandEvent&) {
             if (!wxGetApp().is_user_login()) {
                 MessageDialog info_dlg(this, _L("You must be logged in to sync presets from cloud."),
@@ -4304,7 +4304,7 @@ void MainFrame::update_side_preset_ui()
 void MainFrame::on_select_default_preset(SimpleEvent& evt)
 {
     MessageDialog dialog(this,
-                    _L("Do you want to synchronize your personal data from Orca Cloud?\n"
+                    _L("Do you want to synchronize your personal data from Escaloplab account?\n"
                         "It contains the following information:\n"
                         "1. The Process presets\n"
                         "2. The Filament presets\n"

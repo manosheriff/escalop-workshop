@@ -911,3 +911,6 @@ body
 	cursor: pointer!important;
 	pointer-events: auto!important;
 }
+
+/* Escalop Workshop: no Bambu cloud (Escaloplab printers only) */
+#BambuCloudSection { display: none !important; }

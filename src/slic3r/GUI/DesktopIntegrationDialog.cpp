@@ -420,7 +420,7 @@ void DesktopIntegrationDialog::perform_desktop_integration()
             app_config->set("desktop_integration_app_viewer_path", desktop_path);
         else {
             BOOST_LOG_TRIVIAL(error) << "Performing desktop integration failed - could not create Gcodeviewer desktop file";
-            show_error(nullptr, _L("Performing desktop integration failed - could not create Gcodeviewer desktop file. OrcaSlicer desktop file was probably created successfully."));
+            show_error(nullptr, _L("Performing desktop integration failed - could not create Gcodeviewer desktop file. Escalop Workshop desktop file was probably created successfully."));
         }
     }
     
@@ -535,7 +535,7 @@ void DesktopIntegrationDialog::perform_downloader_desktop_integration(std::strin
 
     std::string desktop_file_downloader = GUI::format(
         "[Desktop Entry]\n"
-        "Name=OrcaSlicer URL Protocol %1% %2%\n"
+        "Name=Escalop Workshop URL Protocol %1% %2%\n"
         "Exec=%3% %%u\n"
         "Terminal=false\n"
         "Type=Application\n"

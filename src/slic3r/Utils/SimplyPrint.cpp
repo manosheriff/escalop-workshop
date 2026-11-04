@@ -195,7 +195,7 @@ bool SimplyPrint::do_api_call(std::function<Http(bool)>                         
     const auto create_request = [this, &build_request, &res, &on_complete](const std::string& access_token, bool is_retry) {
         auto http = build_request(is_retry);
         set_auth(http, access_token);
-        http.header("User-Agent", "SimplyPrint Orca Plugin")
+        http.header("User-Agent", "SimplyPrint OrcaSlicer Plugin")
             .on_complete([&](std::string body, unsigned http_status) {
                 res = on_complete(body, http_status);
             });

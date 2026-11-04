@@ -8,5 +8,5 @@
     "bed_model": "escaloplab_v80_buildplate_model.stl",
     "bed_texture": "escaloplab_v80_buildplate_texture.svg",
     "hotend_model": "",
-    "default_materials": "Generic PLA @System;Generic PETG @System;Generic TPU @System"
+    "default_materials": "Patron PLA @System;Lynx PLA @System;Patron PETG @System;Lynx PETG @System;Patron TPU @System;Lynx TPU @System;Patron ABS @System;Lynx ABS @System;Generic PLA @System;Generic PETG @System"
 }

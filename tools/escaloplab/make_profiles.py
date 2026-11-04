@@ -5,10 +5,14 @@ Generates the Escaloplab vendor profiles (resources/profiles/Escaloplab*).
 The v80 (210 x 210 x 200 mm bed, Marlin with auto bed leveling) comes with a
 Bowden or a direct-drive extruder; each is a printer model with a 0.4 mm nozzle
 preset. At the owner's request the motion limits, retraction and print
-qualities are the Prusa MK3S 0.4 ones, read from resources/profiles/Prusa when
-this runs. Prusa-firmware-only G-code (M862, G80, M907) is replaced by Marlin
+qualities are the Prusa MK3S 0.4 ones, read from tools/escaloplab/prusa_snapshot
+(copied from OrcaSlicer 2.4.2). Prusa-firmware-only G-code (M862, G80, M907) is replaced by Marlin
 equivalents. The Bowden version keeps a longer retraction, which a Bowden tube
-needs. Filaments use OrcaSlicer's generic PLA, PETG and TPU.
+needs. Filaments: Patron and Lynx (PLA, PETG, TPU, ABS) first, added to the
+OrcaFilamentLibrary with generic settings, then OrcaSlicer's generic ones.
+The see-through printer (<model>_frame.stl) comes from the website's 3D model:
+    node tools/escaloplab/frame.mjs <v80.glb> resources/profiles/Escaloplab/escaloplab_v80_frame.stl 80000
+(run from the website's tools/model folder, which has the glTF packages).
 
 Run from the repo root:
     python tools/escaloplab/make_profiles.py
@@ -23,7 +27,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "resources" / "profiles"
 VENDOR = "Escaloplab"
-VERSION = "01.00.00.00"
+VERSION = "01.00.01.00"
 
 # (model name, bed X, bed Y, height, drive)
 MODELS = [
@@ -57,7 +61,8 @@ META_KEYS = {"type", "name", "inherits", "from", "setting_id", "instantiation", 
 def prusa(kind, name):
     """A Prusa preset with everything it inherits merged in."""
     files = {}
-    for f in (OUT / "Prusa" / kind).glob("*.json"):
+    # The MK3S presets this needs, copied from OrcaSlicer 2.4.2 (the other brands are not shipped)
+    for f in (Path(__file__).parent / "prusa_snapshot" / kind).glob("*.json"):
         d = json.loads(f.read_text(encoding="utf-8"))
         files[d["name"]] = d
 
@@ -154,7 +159,7 @@ def model_file(name, slug):
         "bed_model": f"{slug}_buildplate_model.stl",
         "bed_texture": f"{slug}_buildplate_texture.svg",
         "hotend_model": "",
-        "default_materials": "Generic PLA @System;Generic PETG @System;Generic TPU @System",
+        "default_materials": ";".join(filament_names() + ["Generic PLA @System", "Generic PETG @System"]),
     }
 
 
@@ -170,7 +175,7 @@ def printer_preset(name, x, y, h, drive):
         "printer_variant": "0.4",
         "nozzle_diameter": ["0.4"],
         "default_print_profile": "0.20mm Standard @Escaloplab v80",
-        "default_filament_profile": ["Generic PLA @System"],
+        "default_filament_profile": [f"{FILAMENT_BRANDS[0]} PLA @System"],
         "printable_area": ["0x0", f"{x}x0", f"{x}x{y}", f"0x{y}"],
         "printable_height": str(h),
         "retraction_length": [r["length"]],
@@ -230,7 +235,11 @@ def bed_stl(path: Path, x, y, radius=8, margin=3, steps=6):
 
 
 def bed_texture(path: Path, x, y):
-    """The Escaloplab mark and name near the bed's front-left corner (the viewBox spans the bed)."""
+    """The plate as a textured gold PEI sheet (owner's request): a warm bronze base with a fine
+    random speckle like powder-coated PEI, and the Escaloplab mark and name etched near the
+    front-left corner. The viewBox spans the bed. Only plain shapes: the slicer's SVG reader
+    (nanosvg) has no filters."""
+    import random
     from fontTools.pens.svgPathPen import SVGPathPen
     from fontTools.pens.transformPen import TransformPen
     from fontTools.ttLib import TTFont
@@ -242,6 +251,18 @@ def bed_texture(path: Path, x, y):
 
     W, H = 2000, round(2000 * y / x)
     s = W / x  # px per mm
+    rnd = random.Random(80)  # same speckle every run
+    # Sheet: bronze with a soft light falloff, rounded corners like a spring-steel sheet
+    out = [f'<defs><linearGradient id="pei" x1="0" y1="0" x2="1" y2="1">'
+           f'<stop offset="0" stop-color="#d2a752"/><stop offset="0.55" stop-color="#bf9142"/>'
+           f'<stop offset="1" stop-color="#a87b33"/></linearGradient></defs>',
+           f'<rect x="0" y="0" width="{W}" height="{H}" rx="{3*s:.1f}" fill="url(#pei)"/>']
+    # Speckle: tiny light and dark grains
+    for _ in range(4200):
+        light = rnd.random() < 0.5
+        out.append(f'<circle cx="{rnd.uniform(0, W):.0f}" cy="{rnd.uniform(0, H):.0f}" r="{rnd.uniform(1.2, 3.2):.1f}" '
+                   f'fill="{"#e6c97f" if light else "#8f6526"}" fill-opacity="{rnd.uniform(0.25, 0.6):.2f}"/>')
+    # Etched mark and name
     cap = 9 * s  # 9 mm tall letters
     k = cap / cap_units
     d, cx, base = "", 24 * s, H - 14 * s
@@ -256,12 +277,55 @@ def bed_texture(path: Path, x, y):
         cx += hmtx[g][0] * k + cap * 0.08
     m = 12 * s / 200  # 12 mm chevron mark
     ox, oy = 8 * s, H - 26 * s
-    chev = "".join(
-        f'<polyline points="{ox+46*m:.1f},{oy+(78+o)*m:.1f} {ox+100*m:.1f},{oy+(40+o)*m:.1f} {ox+154*m:.1f},{oy+(78+o)*m:.1f}" '
-        f'fill="none" stroke="#9a9ba3" stroke-width="{16*m:.1f}" stroke-linecap="round" stroke-linejoin="round"/>'
-        for o in (0, 33, 66))
+    etch = "#7d5620"
+    out += [f'<polyline points="{ox+46*m:.1f},{oy+(78+o)*m:.1f} {ox+100*m:.1f},{oy+(40+o)*m:.1f} {ox+154*m:.1f},{oy+(78+o)*m:.1f}" '
+            f'fill="none" stroke="{etch}" stroke-opacity="0.8" stroke-width="{16*m:.1f}" stroke-linecap="round" stroke-linejoin="round"/>'
+            for o in (0, 33, 66)]
+    out.append(f'<path d="{d}" fill="{etch}" fill-opacity="0.8"/>')
     path.write_text(f'<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}">'
-                    f'{chev}<path d="{d}" fill="#9a9ba3"/></svg>\n', encoding="utf-8")
+                    + "".join(out) + "</svg>\n", encoding="utf-8")
+
+
+# Egyptian filament brands, listed first (owner's choice). Settings start from OrcaSlicer's
+# generic ones for each material until Escaloplab calibrates them.
+FILAMENT_BRANDS = ["Patron", "Lynx"]
+FILAMENT_TYPES = [("PLA", "fdm_filament_pla"), ("PETG", "fdm_filament_pet"), ("TPU", "fdm_filament_tpu"), ("ABS", "fdm_filament_abs")]
+LIBRARY = OUT / "OrcaFilamentLibrary"
+
+
+def filament_names():
+    # PLA of both brands first, then PETG, ...
+    return [f"{b} {t} @System" for t, _ in FILAMENT_TYPES for b in FILAMENT_BRANDS]
+
+
+def write_filaments():
+    """Adds the brands to OrcaSlicer's filament library, so they work with every printer."""
+    lib_json = OUT / "OrcaFilamentLibrary.json"
+    lib = json.loads(lib_json.read_text(encoding="utf-8"))
+    entries = [e for e in lib["filament_list"] if not any(e["name"].startswith(b + " ") for b in FILAMENT_BRANDS)]
+    added = []
+    for brand in FILAMENT_BRANDS:
+        folder = LIBRARY / "filament" / brand
+        if folder.exists():
+            for f in folder.glob("*.json"):
+                f.unlink()
+        for t, base in FILAMENT_TYPES:
+            name = f"{brand} {t} @System"
+            dump(folder / f"{name}.json", {
+                "type": "filament",
+                "name": name,
+                "inherits": base,
+                "from": "system",
+                "instantiation": "true",
+                "filament_vendor": [brand],
+                "compatible_printers": [],
+            })
+            added.append({"name": name, "sub_path": f"filament/{brand}/{name}.json"})
+    lib["filament_list"] = entries + added
+    # Newer than OrcaSlicer 2.4.2's library, so installed copies are replaced
+    lib["version"] = "02.04.00.10"
+    dump(lib_json, lib)
+    return len(added)
 
 
 def main():
@@ -300,7 +364,8 @@ def main():
         "filament_list": [],
         "machine_list": machines,
     })
-    print(f"{len(machine_models)} printers, {len(processes) - 1} print qualities")
+    n = write_filaments()
+    print(f"{len(machine_models)} printers, {len(processes) - 1} print qualities, {n} brand filaments")
 
 
 if __name__ == "__main__":

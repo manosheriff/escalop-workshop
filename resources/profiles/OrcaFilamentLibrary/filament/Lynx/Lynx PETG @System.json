@@ -1,0 +1,12 @@
+{
+    "type": "filament",
+    "name": "Lynx PETG @System",
+    "inherits": "fdm_filament_pet",
+    "from": "system",
+    "setting_id": "Xb0qGgNZZBNYe1oI",
+    "instantiation": "true",
+    "filament_vendor": [
+        "Lynx"
+    ],
+    "compatible_printers": []
+}

@@ -1,0 +1,12 @@
+{
+    "type": "filament",
+    "name": "Lynx ABS @System",
+    "inherits": "fdm_filament_abs",
+    "from": "system",
+    "setting_id": "Q4DJrIcxpxl3kp1h",
+    "instantiation": "true",
+    "filament_vendor": [
+        "Lynx"
+    ],
+    "compatible_printers": []
+}

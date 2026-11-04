@@ -1,0 +1,12 @@
+{
+    "type": "filament",
+    "name": "Lynx TPU @System",
+    "inherits": "fdm_filament_tpu",
+    "from": "system",
+    "setting_id": "osxfvTXWJyQOg1Aw",
+    "instantiation": "true",
+    "filament_vendor": [
+        "Lynx"
+    ],
+    "compatible_printers": []
+}

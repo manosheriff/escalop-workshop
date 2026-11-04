@@ -1,0 +1,12 @@
+{
+    "type": "filament",
+    "name": "Patron PLA @System",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "setting_id": "hcSrIcLWmZd7g0De",
+    "instantiation": "true",
+    "filament_vendor": [
+        "Patron"
+    ],
+    "compatible_printers": []
+}

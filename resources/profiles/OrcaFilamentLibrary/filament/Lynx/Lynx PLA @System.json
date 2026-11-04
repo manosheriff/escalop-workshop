@@ -1,0 +1,12 @@
+{
+    "type": "filament",
+    "name": "Lynx PLA @System",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "setting_id": "Ryf9RCwI3dB58lmU",
+    "instantiation": "true",
+    "filament_vendor": [
+        "Lynx"
+    ],
+    "compatible_printers": []
+}

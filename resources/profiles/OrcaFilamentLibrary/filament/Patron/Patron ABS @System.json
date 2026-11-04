@@ -1,0 +1,12 @@
+{
+    "type": "filament",
+    "name": "Patron ABS @System",
+    "inherits": "fdm_filament_abs",
+    "from": "system",
+    "setting_id": "HRh8ZwcLMDFeoXGb",
+    "instantiation": "true",
+    "filament_vendor": [
+        "Patron"
+    ],
+    "compatible_printers": []
+}

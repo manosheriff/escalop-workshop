@@ -1,0 +1,12 @@
+{
+    "type": "filament",
+    "name": "Patron PETG @System",
+    "inherits": "fdm_filament_pet",
+    "from": "system",
+    "setting_id": "Ie5LQRJ6Qmg5YhV0",
+    "instantiation": "true",
+    "filament_vendor": [
+        "Patron"
+    ],
+    "compatible_printers": []
+}

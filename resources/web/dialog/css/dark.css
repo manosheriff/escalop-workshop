@@ -43,7 +43,7 @@ body
 
 #Title div
 {
-	color: #F0145A;
+	color: #FF2E8A;
 }
 
 .search>input[type=text]{
@@ -57,7 +57,7 @@ input[type=checkbox]{
 }
 
 input[type=checkbox]:checked{
-	background-color:#F0145A;
+	background-color:#FF2E8A;
 }
 
 /*-------Text------*/
@@ -87,7 +87,7 @@ input[type=checkbox]:checked{
 
 .RegionSelected:hover
 {
-	background-color:#F0145A;
+	background-color:#FF2E8A;
 	color: #fff;	
 }
 

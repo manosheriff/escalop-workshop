@@ -180,7 +180,7 @@ private:
         dc.SetBackground(wxBrush(GetParent() ? GetParent()->GetBackgroundColour() : *wxWHITE));
         dc.Clear();
  
-        wxColour textCol = StateColor::darkModeColorFor(m_hovered ? "#F5457C" : "#363636");
+        wxColour textCol = StateColor::darkModeColorFor(m_hovered ? "#FF5CA3" : "#363636");
  
         dc.SetTextForeground(textCol);
         dc.SetFont(m_font);

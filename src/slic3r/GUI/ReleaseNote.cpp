@@ -490,7 +490,7 @@ void UpdateVersionDialog::update_version_info(wxString release_note, wxString ve
     auto bg_color = StateColor::darkModeColorFor(wxColour("#FFFFFF")).GetAsString();
     auto fg_color = StateColor::darkModeColorFor(wxColour("#262E30")).GetAsString();
     auto style    = "body {color:" + fg_color + "; background-color:" + bg_color + "; font-family:sans-serif}"
-                  + "a    {color: #F0145A}"               // matches hyperlink colors
+                  + "a    {color: #FF2E8A}"               // matches hyperlink colors
                   + "img  {max-width:100%; height:auto}"  // fixes overflowing images
                   + "ul   {padding-inline-start: 20px}";  // reduce left padding on list items
     html_source = (boost::format("<html><head><style>%1%</style></head><body>") % style).str();
@@ -1342,7 +1342,7 @@ void ConfirmBeforeSendDialog::edit_cancel_button_txt(const wxString& txt, bool s
     if (switch_green)
     {
         StateColor btn_bg_green(std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed),
-                                std::pair<wxColour, int>(wxColour(245, 69, 124), StateColor::Hovered),
+                                std::pair<wxColour, int>(wxColour(255, 92, 163), StateColor::Hovered),
                                 std::pair<wxColour, int>(AMS_CONTROL_BRAND_COLOUR, StateColor::Normal));
         m_button_cancel->SetBackgroundColor(btn_bg_green);
         m_button_cancel->SetBorderColor(*wxWHITE);
@@ -1512,7 +1512,7 @@ InputIpAddressDialog::InputIpAddressDialog(wxWindow *parent)
 
     /*other*/
     m_test_right_msg = new Label(this, Label::Body_13, wxEmptyString, LB_AUTO_WRAP);
-    m_test_right_msg->SetForegroundColour(wxColour(245, 69, 124));
+    m_test_right_msg->SetForegroundColour(wxColour(255, 92, 163));
     m_test_right_msg->Hide();
 
     m_test_wrong_msg = new Label(this, Label::Body_13, wxEmptyString, LB_AUTO_WRAP);

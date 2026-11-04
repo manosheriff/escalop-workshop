@@ -98,7 +98,7 @@
     "printer_technology": "FFF",
     "gcode_flavor": "marlin2",
     "extruder_colour": [
-        "#F0145A"
+        "#FF2E8A"
     ],
     "extruder_offset": [
         "0x0"

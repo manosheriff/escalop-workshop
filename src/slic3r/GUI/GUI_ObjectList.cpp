@@ -93,13 +93,13 @@ public:
     wxRenderer() : wxDelegateRendererNative(wxRendererNative::Get()) {}
     virtual void DrawItemSelectionRect(wxWindow *win, wxDC& dc, const wxRect& rect, int flags = 0) override
     {   // ORCA draw selection background to improve consistency between platforms
-        dc.SetBrush(StateColor::darkModeColorFor(wxColour("#FBD0DE")));
+        dc.SetBrush(StateColor::darkModeColorFor(wxColour("#FFD0E4")));
         dc.DrawRectangle(rect);
         //GetGeneric().DrawItemSelectionRect(win, dc, rect, flags);
     }
     virtual void DrawFocusRect(        wxWindow *win, wxDC& dc, const wxRect& rect, int flags = 0) override
     {   // ORCA draw focus rectangle to improve consistency between platforms
-        dc.SetPen(  StateColor::darkModeColorFor(wxColour("#F0145A")));
+        dc.SetPen(  StateColor::darkModeColorFor(wxColour("#FF2E8A")));
         dc.DrawRectangle(rect);
     }
     virtual void DrawTreeItemButton(   wxWindow *win, wxDC& dc, const wxRect& rect, int flags = 0) override

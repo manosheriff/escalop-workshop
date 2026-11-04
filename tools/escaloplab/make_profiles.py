@@ -122,7 +122,7 @@ def machine_common():
         "instantiation": "false",
         "printer_technology": "FFF",
         "gcode_flavor": "marlin2",
-        "extruder_colour": ["#F0145A"],
+        "extruder_colour": ["#FF2E8A"],
         "extruder_offset": ["0x0"],
         "nozzle_diameter": ["0.4"],
         "printer_variant": "0.4",

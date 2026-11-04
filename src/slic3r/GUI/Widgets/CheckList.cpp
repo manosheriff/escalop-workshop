@@ -37,7 +37,7 @@ CheckList::CheckList(
     fb_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto create_btn = [this] (wxString title, bool select){
         auto btn = new wxStaticText(f_bar, wxID_ANY, title);
-        btn->SetForegroundColour("#F0145A");
+        btn->SetForegroundColour("#FF2E8A");
         btn->SetCursor(wxCURSOR_HAND);
         btn->SetFont(Label::Body_13);
         btn->Bind(wxEVT_LEFT_DOWN, [this, select](wxMouseEvent &e) {SelectAll(select);});

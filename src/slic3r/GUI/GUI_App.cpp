@@ -328,7 +328,7 @@ public:
         dc.SetTextForeground(m_fg_color);
 
         dc.SetFont(m_font_version);
-        rc.y      = c_sz.GetHeight() * 0.72;
+        rc.y      = c_sz.GetHeight() * 0.805; // Escaloplab: below the WORKSHOP wordmark
         rc.height = dc.GetTextExtent(m_text_version).GetHeight();
         dc.DrawLabel(m_text_version, rc, wxALIGN_CENTER);
 
@@ -6021,7 +6021,7 @@ std::string GUI_App::format_display_version()
 {
     if (!version_display.empty()) return version_display;
 
-    version_display = SoftFever_VERSION;
+    version_display = ESCALOP_VERSION; // Escalop Workshop's own version, not OrcaSlicer's
     return version_display;
 }
 

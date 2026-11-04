@@ -474,6 +474,8 @@ void Bed3D::render_system(GLCanvas3D& canvas, const Transform3d& view_matrix, co
 {
     if (!bottom)
         render_model(view_matrix, projection_matrix);
+    else // looking from under the plate: the bed model is hidden, the printer stays
+        render_printer_frame(view_matrix, projection_matrix, Geometry::assemble_transform(m_model_offset));
 
     /*if (show_texture)
         render_texture(bottom, canvas);*/
@@ -746,6 +748,10 @@ void Bed3D::render_printer_frame(const Transform3d& view_matrix, const Transform
     glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
     // Don't write depth: the frame never hides the parts on the plate
     glsafe(::glDepthMask(GL_FALSE));
+    // Front faces only: half the overlapping layers, so the printer reads clearly
+    const bool cull_was_on = ::glIsEnabled(GL_CULL_FACE) == GL_TRUE;
+    glsafe(::glEnable(GL_CULL_FACE));
+    glsafe(::glCullFace(GL_BACK));
     shader->start_using();
     shader->set_uniform("emission_factor", 0.0f);
     shader->set_uniform("view_model_matrix", view_matrix * model_matrix);
@@ -754,8 +760,20 @@ void Bed3D::render_printer_frame(const Transform3d& view_matrix, const Transform
     shader->set_uniform("view_normal_matrix", view_normal_matrix);
     m_frame_model.render();
     shader->stop_using();
+    if (!cull_was_on)
+        glsafe(::glDisable(GL_CULL_FACE));
     glsafe(::glDepthMask(GL_TRUE));
     glsafe(::glDisable(GL_BLEND));
+}
+
+BoundingBoxf3 Bed3D::printer_frame_bounding_box() const
+{
+    BoundingBoxf3 box;
+    if (!m_frame_model.get_filename().empty()) {
+        box = m_frame_model.get_bounding_box();
+        box.translate(m_model_offset);
+    }
+    return box;
 }
 
 void Bed3D::render_custom(GLCanvas3D& canvas, const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom)
@@ -767,6 +785,8 @@ void Bed3D::render_custom(GLCanvas3D& canvas, const Transform3d& view_matrix, co
 
     if (!bottom)
         render_model(view_matrix, projection_matrix);
+    else
+        render_printer_frame(view_matrix, projection_matrix, Geometry::assemble_transform(m_model_offset));
 
     /*if (show_texture)
         render_texture(bottom, canvas);*/

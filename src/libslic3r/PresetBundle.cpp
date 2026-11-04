@@ -1223,7 +1223,9 @@ bool PresetBundle::apply_vendor_config(
                             // Vendor is loaded, check if the filament exists
                             for (auto f : vendor_it->second.default_filaments) {
                                 BOOST_LOG_TRIVIAL(info) << " checking if vendor filament " << f << " matches " << short_name << "(" << name << ")";
-                                if (f.find(short_name) != std::string::npos) {
+                                // Escaloplab: exact match. A partial match took "Patron PLA @System" for an
+                                // override of itself and saved the filament under a name that doesn't exist
+                                if (f == short_name) {
                                     BOOST_LOG_TRIVIAL(info) << name << " has filament from vendor: " << vendor;
                                     has_vendor_filament = true;
                                     break;
@@ -1276,6 +1278,18 @@ bool PresetBundle::apply_vendor_config(
     // Load presets with new configuration
     this->load_presets(*app_config, ForwardCompatibilitySubstitutionRule::Enable,
         {preferred_printer_model, preferred_printer_variant, preferred_filament, std::string()});
+
+    // Escaloplab: after the wizard, start on the printer's default filament (Patron PLA)
+    if (!supplemented_filaments.empty()) {
+        const auto *defaults = this->printers.get_selected_preset().config.option<ConfigOptionStrings>("default_filament_profile");
+        if (defaults != nullptr && !defaults->values.empty() && supplemented_filaments.count(defaults->values.front()) > 0) {
+            const Preset *preset = this->filaments.find_preset(defaults->values.front());
+            if (preset && preset->is_visible && preset->is_compatible) {
+                this->filaments.select_preset_by_name(defaults->values.front(), true);
+                this->filament_presets.front() = this->filaments.get_selected_preset_name();
+            }
+        }
+    }
 
     // Ensure active filament compatibility
     // If the active filament is not in the wizard-selected filaments, switch to the first
@@ -2654,7 +2668,7 @@ void PresetBundle::update_selections(AppConfig &config)
     if (!f_colors.empty()) {
         boost::algorithm::split(filament_colors, f_colors, boost::algorithm::is_any_of(","));
     }
-    filament_colors.resize(filament_presets.size(), "#26A69A");
+    filament_colors.resize(filament_presets.size(), "#FF2E8A");
     project_config.option<ConfigOptionStrings>("filament_colour")->values = filament_colors;
 
     std::vector<std::string> multi_filament_colors;
@@ -2798,7 +2812,7 @@ void PresetBundle::load_selections(AppConfig &config, const PresetPreferences& p
     if (!f_colors.empty()) {
         boost::algorithm::split(filament_colors, f_colors, boost::algorithm::is_any_of(","));
     }
-    filament_colors.resize(filament_presets.size(), "#26A69A");
+    filament_colors.resize(filament_presets.size(), "#FF2E8A");
     project_config.option<ConfigOptionStrings>("filament_colour")->values = filament_colors;
 
     std::vector<std::string> multi_filament_colors;

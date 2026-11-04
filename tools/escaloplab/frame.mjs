@@ -1,7 +1,8 @@
 // Escalop Workshop (the slicer) shows the v80 see-through around its build plate.
 // This writes that printer as a binary STL in the slicer's bed coordinates:
 // X/Y centred on the build plate (like the bed model), Z = 0 on the plate's top, +Y towards the back.
-// The bed itself is left out (the slicer draws its own plate). Meshes are simplified to stay light.
+// Left out: the bed (the slicer draws its own plate), the PSU and control board (owner's request), the
+// spool and the Bowden tube (the app's preview shouldn't show filament). Meshes are simplified to stay light.
 // Usage: node frame.mjs ../../public/models/v80.glb <out.stl> [max triangles]
 import fs from "node:fs";
 import { NodeIO } from "@gltf-transform/core";
@@ -29,6 +30,16 @@ const parent = new Map();
 for (const n of root.listNodes()) for (const c of n.listChildren()) parent.set(c, n);
 for (const n of root.listNodes()) n.getParentNode = () => parent.get(n) ?? null;
 
+const labelOf = (node) => {
+  for (let n = node; n; n = n.getParentNode?.() ?? null) {
+    const l = n.getExtras()?.label;
+    if (l) return l;
+  }
+  return "";
+};
+const HIDDEN_GROUPS = new Set(["bed", "spool", "bowden"]);
+const HIDDEN_LABELS = /psu|arduino|ramps|electronics tray/i;
+
 const parts = [];
 let total = 0;
 for (const node of root.listNodes()) {
@@ -40,7 +51,7 @@ for (const node of root.listNodes()) {
     const idx = prim.getIndices();
     const tris = idx ? idx.getCount() / 3 : prim.getAttribute("POSITION").getCount() / 3;
     total += tris;
-    parts.push({ node, prim, group, m, tris });
+    parts.push({ node, prim, group, label: labelOf(node), m, tris });
   }
 }
 
@@ -69,7 +80,8 @@ const scale = bedSize[0] < 5 ? 1000 : 1;
 const cx = (bed.min[0] + bed.max[0]) / 2, cz = (bed.min[2] + bed.max[2]) / 2, top = bed.max[1];
 console.log("bed", bedSize.map((s) => (s * scale).toFixed(1)).join(" x "), "mm; model triangles", total);
 
-const keep = parts.filter((p) => p.group !== "bed");
+const keep = parts.filter((p) => !HIDDEN_GROUPS.has(p.group) && !HIDDEN_LABELS.test(p.label));
+console.log("left out:", [...new Set(parts.filter((p) => !keep.includes(p)).map((p) => p.label))].join(", "));
 const keepTris = keep.reduce((s, p) => s + p.tris, 0);
 const ratio = Math.min(1, Number(maxTris) / keepTris);
 const out = [];

@@ -152,6 +152,8 @@ public:
 
     // Bounding box around the print bed, axes and model, for rendering.
     const BoundingBoxf3& extended_bounding_box() const { return m_extended_bounding_box; }
+    // Escaloplab: the see-through printer, so the camera keeps all of it in view
+    BoundingBoxf3 printer_frame_bounding_box() const;
     const BoundingBoxf3 &printable_bounding_box() const { return m_printable_bounding_box; }
 
     // Check against an expanded 2d bounding box.

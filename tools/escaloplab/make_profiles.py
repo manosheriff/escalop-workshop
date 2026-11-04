@@ -27,7 +27,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "resources" / "profiles"
 VENDOR = "Escaloplab"
-VERSION = "01.00.01.00"
+VERSION = "01.00.02.00"
 
 # (model name, bed X, bed Y, height, drive)
 MODELS = [

@@ -1,7 +1,7 @@
 {
     "name": "Escaloplab",
     "url": "https://escaloplab.com",
-    "version": "01.00.01.00",
+    "version": "01.00.02.00",
     "force_update": "0",
     "description": "Escaloplab v80 configurations",
     "machine_model_list": [

@@ -2008,7 +2008,12 @@ void GLCanvas3D::render(bool only_init)
         camera.requires_zoom_to_volumes = false;
     }
 
-    camera.apply_projection(_max_bounding_box(true, true, true));
+    // Escaloplab: the see-through printer is much taller than the bed; without this the
+    // camera's near/far planes cut it off as the view turns
+    BoundingBoxf3 camera_box = _max_bounding_box(true, true, true);
+    if (const BoundingBoxf3 frame_box = m_bed.printer_frame_bounding_box(); frame_box.defined)
+        camera_box.merge(frame_box);
+    camera.apply_projection(camera_box);
 
     wxGetApp().imgui()->new_frame();
 

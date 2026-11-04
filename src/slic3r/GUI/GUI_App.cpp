@@ -162,6 +162,7 @@ typedef BOOL (WINAPI *LPFN_ISWOW64PROCESS2)(
 #endif
 #ifdef _WIN32
 #include <boost/dll/runtime_symbol_info.hpp>
+#include <shellapi.h>
 #endif
 
 #ifdef WIN32
@@ -171,6 +172,7 @@ typedef BOOL (WINAPI *LPFN_ISWOW64PROCESS2)(
 #if ENABLE_THUMBNAIL_GENERATOR_DEBUG
 #include <boost/beast/core/detail/base64.hpp>
 #include <boost/nowide/fstream.hpp>
+#include <atomic>
 #endif // ENABLE_THUMBNAIL_GENERATOR_DEBUG
 
 #ifdef __WXGTK__
@@ -652,6 +654,98 @@ static void register_win32_device_notification_event()
 		});
 }
 #endif // WIN32
+
+#ifdef _WIN32
+// Escaloplab: Escalop Workshop updates itself on Windows. The new installer downloads in the
+// background; when it is ready the user confirms once, and a small script waits for the app to
+// close, installs silently and starts the new version. The script needs administrator rights
+// (the app lives in Program Files), so Windows asks for permission once.
+static void escalop_install_update(const boost::filesystem::path& installer)
+{
+    namespace fs = boost::filesystem;
+    wchar_t exe_path[4096] = {};
+    if (::GetModuleFileNameW(nullptr, exe_path, 4096) == 0)
+        return;
+    const fs::path    app(exe_path);
+    const fs::path    script = installer.parent_path() / "EscalopWorkshop_Update.cmd";
+    const std::string pid    = std::to_string(::GetCurrentProcessId());
+    {
+        boost::nowide::ofstream f(script.string(), std::ios::binary);
+        f << "@echo off\r\nchcp 65001 >nul\r\n:wait\r\n"
+          << "tasklist /FI \"PID eq " << pid << "\" /NH | find \"" << pid << "\" >nul\r\n"
+          << "if not errorlevel 1 (ping -n 2 127.0.0.1 >nul & goto wait)\r\n"
+          << "\"" << installer.string() << "\" /S /D=" << app.parent_path().string() << "\r\n"
+          << "del \"" << installer.string() << "\"\r\n"
+          // explorer starts the app as the normal user, not as administrator
+          << "start \"\" explorer.exe \"" << app.string() << "\"\r\n"
+          << "(goto) 2>nul & del \"%~f0\"\r\n";
+    }
+    const std::wstring params = L"/c \"\"" + script.wstring() + L"\"\"";
+    SHELLEXECUTEINFOW  info   = {};
+    info.cbSize       = sizeof(info);
+    info.lpVerb       = L"runas";
+    info.lpFile       = L"cmd.exe";
+    info.lpParameters = params.c_str();
+    info.nShow        = SW_HIDE;
+    if (!::ShellExecuteExW(&info)) {
+        BOOST_LOG_TRIVIAL(warning) << "Update: the script was not started (permission refused?)";
+        return;
+    }
+    // If a project has unsaved changes and the user cancels, the script simply waits for the app to close
+    wxGetApp().mainframe->Close(false);
+}
+
+static void escalop_update_ready(const boost::filesystem::path& installer, const std::string& version)
+{
+    MessageDialog dialog(wxGetApp().mainframe,
+                         wxString::Format(_L("Escalop Workshop %s is ready to install. Restart now to update?"), from_u8(version)),
+                         _L("Update ready"), wxYES_NO | wxICON_QUESTION);
+    if (dialog.ShowModal() == wxID_YES)
+        escalop_install_update(installer);
+}
+
+static void escalop_start_update(const std::string& url, unsigned long long size, const std::string& version)
+{
+    namespace fs = boost::filesystem;
+    static std::atomic<bool> downloading{ false };
+    boost::system::error_code ec;
+    const fs::path dir = fs::temp_directory_path(ec) / "EscalopWorkshopUpdate";
+    fs::create_directories(dir, ec);
+    const fs::path installer = dir / ("EscalopWorkshop_" + version + ".exe");
+    // Already downloaded on an earlier start
+    if (fs::exists(installer, ec) && (size == 0 || fs::file_size(installer, ec) == size)) {
+        escalop_update_ready(installer, version);
+        return;
+    }
+    if (downloading.exchange(true))
+        return;
+    auto http = Http::get(url);
+    http.on_error([](std::string, std::string error, unsigned status) {
+            BOOST_LOG_TRIVIAL(error) << "Update: download failed: " << error << ", HTTP " << status;
+            downloading = false;
+        })
+        .on_complete([installer, size, version](std::string body, unsigned) {
+            downloading = false;
+            if (size != 0 && body.size() != size) {
+                BOOST_LOG_TRIVIAL(error) << "Update: incomplete download, " << body.size() << " of " << size << " bytes";
+                return;
+            }
+            const fs::path partial = fs::path(installer).replace_extension(".part");
+            {
+                boost::nowide::ofstream f(partial.string(), std::ios::binary);
+                f.write(body.data(), body.size());
+                if (!f.good())
+                    return;
+            }
+            boost::system::error_code rename_ec;
+            fs::rename(partial, installer, rename_ec);
+            if (rename_ec)
+                return;
+            wxGetApp().CallAfter([installer, version]() { escalop_update_ready(installer, version); });
+        })
+        .perform();
+}
+#endif // _WIN32
 
 static void generic_exception_handle()
 {
@@ -2920,6 +3014,13 @@ bool GUI_App::on_init_inner()
         preset_updater = new PresetUpdater();
         Bind(EVT_SLIC3R_VERSION_ONLINE, [this](const wxCommandEvent& evt) {
             if (this->plater_ != nullptr) {
+#ifdef _WIN32
+                // Escaloplab: Windows updates itself, no browser
+                if (!version_info.installer_url.empty() && !is_running_in_msix()) {
+                    escalop_start_update(version_info.installer_url, version_info.installer_size, version_info.version_str);
+                    return;
+                }
+#endif
                 // this->plater_->get_notification_manager()->push_notification(NotificationType::NewAppAvailable);
                 //BBS show msg box to download new version
                /* wxString tips = wxString::Format(_L("Click to download new version in default browser: %s"), version_info.version_str);
@@ -5674,6 +5775,8 @@ void GUI_App::check_new_version_sf(bool show_tips, int by_user)
             std::string best_release_url;
             std::string best_release_content;
             std::string best_pre_content;
+            // Escaloplab: each release's Windows installer, by release page
+            std::map<std::string, std::pair<std::string, unsigned long long>> installers;
 
             auto consider_release = [&](const boost::property_tree::ptree& node) {
                 auto tag_opt = node.get_optional<std::string>("tag_name");
@@ -5691,6 +5794,14 @@ void GUI_App::check_new_version_sf(bool show_tips, int by_user)
                 const bool is_prerelease = node.get_optional<bool>("prerelease").get_value_or(false);
                 const std::string html_url = node.get_optional<std::string>("html_url").get_value_or(std::string());
                 const std::string body_copy = node.get_optional<std::string>("body").get_value_or(std::string());
+                if (auto assets = node.get_child_optional("assets")) {
+                    for (const auto& asset : *assets) {
+                        const std::string name = boost::to_lower_copy(asset.second.get<std::string>("name", ""));
+                        if (boost::ends_with(name, ".exe") && name.find("windows") != std::string::npos && name.find("x64") != std::string::npos)
+                            installers[html_url] = { asset.second.get<std::string>("browser_download_url", ""),
+                                                     asset.second.get<unsigned long long>("size", 0) };
+                    }
+                }
 
                 if (is_prerelease) {
                     if (!best_pre_valid || best_pre < tag_version) {
@@ -5749,6 +5860,12 @@ void GUI_App::check_new_version_sf(bool show_tips, int by_user)
             version_info.version_str   = prefer_release ? best_release.to_string_sf() : best_pre.to_string_sf();
             version_info.description   = prefer_release ? best_release_content : best_pre_content;
             version_info.force_upgrade = false;
+            version_info.installer_url.clear();
+            version_info.installer_size = 0;
+            if (auto installer = installers.find(version_info.url); installer != installers.end()) {
+                version_info.installer_url  = installer->second.first;
+                version_info.installer_size = installer->second.second;
+            }
 
             wxCommandEvent* evt = new wxCommandEvent(EVT_SLIC3R_VERSION_ONLINE);
             evt->SetString((prefer_release ? best_release : best_pre).to_string());

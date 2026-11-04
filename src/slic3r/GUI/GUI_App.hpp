@@ -162,6 +162,9 @@ public:
     std::string version_name;
     std::string description;
     std::string url;
+    // Escaloplab: the Windows installer of this release, for self-updating
+    std::string installer_url;
+    unsigned long long installer_size{ 0 };
     bool        force_upgrade{ false };
     int      ver_items[VERSION_LEN];  // AA.BB.CC.DD
     VersionInfo() {

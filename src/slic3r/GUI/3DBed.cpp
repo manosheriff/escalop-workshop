@@ -713,8 +713,49 @@ void Bed3D::render_model(const Transform3d& view_matrix, const Transform3d& proj
             }
             m_model.render();
             shader->stop_using();
+
+            render_printer_frame(view_matrix, projection_matrix, model_matrix);
         }
     }
+}
+
+// Escaloplab: the printer itself, faint and see-through around the build plate, so a part looks like it sits
+// on the real printer. Used when a <name>_frame.stl sits next to the <name>_buildplate_model.stl bed model.
+void Bed3D::render_printer_frame(const Transform3d& view_matrix, const Transform3d& projection_matrix, const Transform3d& model_matrix)
+{
+    if (m_frame_source != m_model_filename) {
+        m_frame_source = m_model_filename;
+        m_frame_model.reset();
+        const std::string tail = "_buildplate_model.stl";
+        if (boost::algorithm::iends_with(m_model_filename, tail)) {
+            std::string frame = m_model_filename.substr(0, m_model_filename.size() - tail.size()) + "_frame.stl";
+            if (boost::filesystem::exists(frame) && !m_frame_model.init_from_file(frame))
+                BOOST_LOG_TRIVIAL(warning) << "Escaloplab: could not load the printer frame " << frame;
+        }
+    }
+    if (m_frame_model.get_filename().empty())
+        return;
+
+    GLShaderProgram* shader = wxGetApp().get_shader("gouraud_light");
+    if (shader == nullptr)
+        return;
+
+    // Light grey on the dark theme, dark grey on the light one; mostly transparent
+    m_frame_model.set_color(m_is_dark ? ColorRGBA{ 0.80f, 0.80f, 0.86f, 0.16f } : ColorRGBA{ 0.22f, 0.22f, 0.27f, 0.16f });
+    glsafe(::glEnable(GL_BLEND));
+    glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+    // Don't write depth: the frame never hides the parts on the plate
+    glsafe(::glDepthMask(GL_FALSE));
+    shader->start_using();
+    shader->set_uniform("emission_factor", 0.0f);
+    shader->set_uniform("view_model_matrix", view_matrix * model_matrix);
+    shader->set_uniform("projection_matrix", projection_matrix);
+    const Matrix3d view_normal_matrix = view_matrix.matrix().block(0, 0, 3, 3) * model_matrix.matrix().block(0, 0, 3, 3).inverse().transpose();
+    shader->set_uniform("view_normal_matrix", view_normal_matrix);
+    m_frame_model.render();
+    shader->stop_using();
+    glsafe(::glDepthMask(GL_TRUE));
+    glsafe(::glDisable(GL_BLEND));
 }
 
 void Bed3D::render_custom(GLCanvas3D& canvas, const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom)

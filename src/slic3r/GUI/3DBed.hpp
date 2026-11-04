@@ -109,6 +109,9 @@ private:
     // temporary texture shown until the main texture has still no levels compressed
     //GLTexture m_temp_texture;
     GLModel m_model;
+    // Escaloplab: the printer around the plate, drawn see-through (<model>_frame.stl next to the bed model)
+    GLModel m_frame_model;
+    std::string m_frame_source;
     Vec3d m_model_offset{ Vec3d::Zero() };
     Axes m_axes;
 
@@ -175,6 +178,7 @@ private:
     void render_system(GLCanvas3D& canvas, const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom);
     //void render_texture(bool bottom, GLCanvas3D& canvas);
     void render_model(const Transform3d& view_matrix, const Transform3d& projection_matrix);
+    void render_printer_frame(const Transform3d& view_matrix, const Transform3d& projection_matrix, const Transform3d& model_matrix);
     void render_custom(GLCanvas3D& canvas, const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom);
     void render_default(bool bottom, const Transform3d& view_matrix, const Transform3d& projection_matrix);
     

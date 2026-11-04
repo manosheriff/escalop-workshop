@@ -53,11 +53,13 @@ using json = nlohmann::json;
 namespace Slic3r {
 
 namespace {
-constexpr const char* ORCA_DEFAULT_API_URL = "api.orcaslicer.com";
-constexpr const char* ORCA_DEFAULT_AUTH_URL = "https://auth.orcaslicer.com";
-constexpr const char* ORCA_DEFAULT_CLOUD_URL = "https://cloud.orcaslicer.com";
-// Orca: This is a public key with no secret, used to identify the client application to the backend.
-constexpr const char* ORCA_DEFAULT_PUB_KEY = "sb_publishable_lvVe_whOi80SU9BPSxM1kA_tbt9AbR_";
+// Escaloplab: sign in with the escaloplab.com account. The website and the app share one Supabase
+// project (the login page lives at escaloplab.com/workshop/login); there is no preset sync service yet.
+constexpr const char* ORCA_DEFAULT_API_URL = "https://escaloplab.com/api/workshop";
+constexpr const char* ORCA_DEFAULT_AUTH_URL = "https://kcqljxqfsfxwqytufsrt.supabase.co";
+constexpr const char* ORCA_DEFAULT_CLOUD_URL = "https://escaloplab.com";
+// Public key with no secret (the same one the website uses in the browser), identifies the app to Supabase.
+constexpr const char* ORCA_DEFAULT_PUB_KEY = "sb_publishable_5KfyZLY5rwdXu14t8n2C6g_65Wb_-tb";
 
 constexpr const char* ORCA_HEALTH_PATH = "/api/v1/health";
 constexpr const char* ORCA_SYNC_PULL_PATH = "/api/v1/sync/pull";
@@ -70,14 +72,14 @@ constexpr const char* ORCA_SYNC_STATE_FILE = "sync_state";
 constexpr const char* ORCA_SYNC_PROFILE_TABLE = "profiles";
 constexpr size_t ORCA_SYNC_MAX_PAYLOAD_SIZE = 1048576; // 1MB size limit
 
-constexpr const char* ORCA_CLOUD_LOGIN_PATH = "/orcaslicer-login";
+constexpr const char* ORCA_CLOUD_LOGIN_PATH = "/workshop/login";
 
 constexpr const char* CONFIG_ORCA_API_URL = "orca_api_url";
 constexpr const char* CONFIG_ORCA_AUTH_URL = "orca_auth_url";
 constexpr const char* CONFIG_ORCA_CLOUD_URL = "orca_cloud_url";
 constexpr const char* CONFIG_ORCA_PUB_KEY = "orca_pub_key";
 
-constexpr const char* SECRET_STORE_SERVICE = "OrcaSlicer/Auth";
+constexpr const char* SECRET_STORE_SERVICE = "EscalopWorkshop/Auth";
 constexpr const char* SECRET_STORE_USER    = "orca_refresh_token";
 constexpr std::chrono::seconds TOKEN_REFRESH_SKEW{900}; // 15 minutes
 

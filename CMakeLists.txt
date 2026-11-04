@@ -958,6 +958,16 @@ set (CPACK_NSIS_EXECUTABLES_DIRECTORY ".")
 # set (CPACK_NSIS_MODIFY_PATH "ON")
 set(CPACK_PACKAGE_EXECUTABLES "orca-slicer;Escalop Workshop")
 set(CPACK_CREATE_DESKTOP_LINKS "orca-slicer")
+# Escaloplab: always put Escalop Workshop on the desktop and in the Start menu, even if the
+# "Do not create shortcuts" box is ticked (the owner lost the app that way)
+set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS "
+  CreateShortCut \\\"$DESKTOP\\\\Escalop Workshop.lnk\\\" \\\"$INSTDIR\\\\orca-slicer.exe\\\"
+  CreateShortCut \\\"$SMPROGRAMS\\\\Escalop Workshop.lnk\\\" \\\"$INSTDIR\\\\orca-slicer.exe\\\"
+")
+set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "
+  Delete \\\"$DESKTOP\\\\Escalop Workshop.lnk\\\"
+  Delete \\\"$SMPROGRAMS\\\\Escalop Workshop.lnk\\\"
+")
 set (CPACK_RESOURCE_FILE_LICENSE ${CMAKE_SOURCE_DIR}/LICENSE.txt) # must also include in install command
 
 set(CPACK_WIX_UPGRADE_GUID "058245e8-20e0-4a95-9ab7-1acfe17ad511")

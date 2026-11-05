@@ -963,6 +963,7 @@ set(CPACK_CREATE_DESKTOP_LINKS "orca-slicer")
 set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS "
   CreateShortCut \\\"$DESKTOP\\\\Escalop Workshop.lnk\\\" \\\"$INSTDIR\\\\orca-slicer.exe\\\"
   CreateShortCut \\\"$SMPROGRAMS\\\\Escalop Workshop.lnk\\\" \\\"$INSTDIR\\\\orca-slicer.exe\\\"
+  System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0, i 0, i 0)'
 ")
 set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "
   Delete \\\"$DESKTOP\\\\Escalop Workshop.lnk\\\"

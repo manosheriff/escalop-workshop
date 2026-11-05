@@ -12,7 +12,7 @@ set(BBL_INTERNAL_TESTING "0")
 endif()
 set(SoftFever_VERSION "2.4.2")
 # Escalop Workshop's own release number (shown on installers and downloads)
-set(ESCALOP_VERSION "1.2.1")
+set(ESCALOP_VERSION "1.2.2")
 string(REGEX MATCH "^([0-9]+)\\.([0-9]+)\\.([0-9]+)"
        SoftFever_VERSION_MATCH ${SoftFever_VERSION})
 set(ORCA_VERSION_MAJOR ${CMAKE_MATCH_1})

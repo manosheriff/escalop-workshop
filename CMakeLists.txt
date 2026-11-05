@@ -957,12 +957,11 @@ set (CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL ON)
 set (CPACK_NSIS_EXECUTABLES_DIRECTORY ".")
 # set (CPACK_NSIS_MODIFY_PATH "ON")
 set(CPACK_PACKAGE_EXECUTABLES "orca-slicer;Escalop Workshop")
-set(CPACK_CREATE_DESKTOP_LINKS "orca-slicer")
 # Escaloplab: always put Escalop Workshop on the desktop and in the Start menu, even if the
 # "Do not create shortcuts" box is ticked (the owner lost the app that way)
 set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS "
-  CreateShortCut \\\"$DESKTOP\\\\Escalop Workshop.lnk\\\" \\\"$INSTDIR\\\\orca-slicer.exe\\\"
-  CreateShortCut \\\"$SMPROGRAMS\\\\Escalop Workshop.lnk\\\" \\\"$INSTDIR\\\\orca-slicer.exe\\\"
+  CreateShortCut \\\"$DESKTOP\\\\Escalop Workshop.lnk\\\" \\\"$INSTDIR\\\\orca-slicer.exe\\\" \\\"\\\" \\\"$INSTDIR\\\\resources\\\\images\\\\EscalopWorkshop.ico\\\"
+  CreateShortCut \\\"$SMPROGRAMS\\\\Escalop Workshop.lnk\\\" \\\"$INSTDIR\\\\orca-slicer.exe\\\" \\\"\\\" \\\"$INSTDIR\\\\resources\\\\images\\\\EscalopWorkshop.ico\\\"
   System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0, i 0, i 0)'
 ")
 set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "

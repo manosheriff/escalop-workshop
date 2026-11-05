@@ -698,7 +698,7 @@ static void escalop_install_update(const boost::filesystem::path& installer)
 static void escalop_update_ready(const boost::filesystem::path& installer, const std::string& version)
 {
     MessageDialog dialog(wxGetApp().mainframe,
-                         wxString::Format(_L("Escalop Workshop %s is ready to install. Restart now to update?"), from_u8(version)),
+                         wxString::Format(_L("Escalop Workshop %s is ready to install. Restart now to update?\n\nWindows will ask for permission: click Yes."), from_u8(version)),
                          _L("Update ready"), wxYES_NO | wxICON_QUESTION);
     if (dialog.ShowModal() == wxID_YES)
         escalop_install_update(installer);

@@ -8,6 +8,11 @@
 #include <sstream>
 #include <thread>
 
+#ifndef _WIN32
+#include <sys/ioctl.h>
+#include <termios.h>
+#endif
+
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/asio.hpp>
 #include <boost/log/trivial.hpp>
@@ -29,6 +34,25 @@ constexpr size_t   FLASH_PAGE      = 256;                    // ATmega2560 flash
 constexpr size_t   APP_FLASH_SIZE  = 256 * 1024 - 8 * 1024;  // the top 8 KB hold the bootloader
 constexpr unsigned BOOTLOADER_BAUD = 115200;
 constexpr uint8_t  SIGNATURE[3]    = {0x1E, 0x98, 0x01};     // ATmega2560
+
+// Serial::set_DTR is commented out upstream, so DTR is switched here
+void set_dtr(asio::serial_port& port, bool on)
+{
+#ifdef _WIN32
+    if (!EscapeCommFunction(port.native_handle(), on ? SETDTR : CLRDTR))
+        throw RuntimeError("Could not set serial port DTR");
+#else
+    int status = 0;
+    if (::ioctl(port.native_handle(), TIOCMGET, &status) != 0)
+        throw RuntimeError("Could not read serial port lines");
+    if (on)
+        status |= TIOCM_DTR;
+    else
+        status &= ~TIOCM_DTR;
+    if (::ioctl(port.native_handle(), TIOCMSET, &status) != 0)
+        throw RuntimeError("Could not set serial port DTR");
+#endif
+}
 
 // STK500v2 protocol (Atmel AVR068), as spoken by the Arduino Mega bootloader
 constexpr uint8_t MESSAGE_START          = 0x1B;
@@ -79,9 +103,9 @@ public:
     // The board restarts when DTR switches on (the USB chip pulses its reset line)
     void reset_board()
     {
-        m_port.set_DTR(false);
+        set_dtr(m_port, false);
         std::this_thread::sleep_for(milliseconds(250));
-        m_port.set_DTR(true);
+        set_dtr(m_port, true);
         std::this_thread::sleep_for(milliseconds(50));
         m_buf.clear();
         m_pos = 0;

@@ -656,52 +656,55 @@ static void register_win32_device_notification_event()
 #endif // WIN32
 
 #ifdef _WIN32
-// Escaloplab: Escalop Workshop updates itself on Windows. The new installer downloads in the
-// background; when it is ready the user confirms once, and a small script waits for the app to
-// close, installs silently and starts the new version. The script needs administrator rights
-// (the app lives in Program Files), so Windows asks for permission once.
-static void escalop_install_update(const boost::filesystem::path& installer)
-{
-    namespace fs = boost::filesystem;
-    wchar_t exe_path[4096] = {};
-    if (::GetModuleFileNameW(nullptr, exe_path, 4096) == 0)
-        return;
-    const fs::path    app(exe_path);
-    const fs::path    script = installer.parent_path() / "EscalopWorkshop_Update.cmd";
-    const std::string pid    = std::to_string(::GetCurrentProcessId());
-    {
-        boost::nowide::ofstream f(script.string(), std::ios::binary);
-        f << "@echo off\r\nchcp 65001 >nul\r\n:wait\r\n"
-          << "tasklist /FI \"PID eq " << pid << "\" /NH | find \"" << pid << "\" >nul\r\n"
-          << "if not errorlevel 1 (ping -n 2 127.0.0.1 >nul & goto wait)\r\n"
-          << "\"" << installer.string() << "\" /S /D=" << app.parent_path().string() << "\r\n"
-          << "del \"" << installer.string() << "\"\r\n"
-          // explorer starts the app as the normal user, not as administrator
-          << "start \"\" explorer.exe \"" << app.string() << "\"\r\n"
-          << "(goto) 2>nul & del \"%~f0\"\r\n";
-    }
-    const std::wstring params = L"/c \"\"" + script.wstring() + L"\"\"";
-    SHELLEXECUTEINFOW  info   = {};
-    info.cbSize       = sizeof(info);
-    info.lpVerb       = L"runas";
-    info.lpFile       = L"cmd.exe";
-    info.lpParameters = params.c_str();
-    info.nShow        = SW_HIDE;
-    if (!::ShellExecuteExW(&info)) {
-        BOOST_LOG_TRIVIAL(warning) << "Update: the script was not started (permission refused?)";
-        return;
-    }
-    // If a project has unsaved changes and the user cancels, the script simply waits for the app to close
-    wxGetApp().mainframe->Close(false);
-}
+// Escaloplab: Escalop Workshop updates itself on Windows, without asking. The new installer downloads
+// in the background while the app is open; once every Escalop Workshop window is closed, a hidden
+// script installs it silently. From 1.3.1 on the app is installed per user (see
+// cmake/modules/NSIS.template.in), so no administrator permission is needed. The next start runs the
+// new version.
+static boost::filesystem::path s_escalop_pending_update;
 
 static void escalop_update_ready(const boost::filesystem::path& installer, const std::string& version)
 {
-    MessageDialog dialog(wxGetApp().mainframe,
-                         wxString::Format(_L("Escalop Workshop %s is ready to install. Restart now to update?\n\nWindows will ask for permission: click Yes."), from_u8(version)),
-                         _L("Update ready"), wxYES_NO | wxICON_QUESTION);
-    if (dialog.ShowModal() == wxID_YES)
-        escalop_install_update(installer);
+    BOOST_LOG_TRIVIAL(info) << "Update: " << version << " is downloaded and installs when the app closes";
+    s_escalop_pending_update = installer;
+}
+
+// Called when the app exits
+static void escalop_install_pending_update()
+{
+    namespace fs = boost::filesystem;
+    const fs::path installer = s_escalop_pending_update;
+    boost::system::error_code ec;
+    if (installer.empty() || !fs::exists(installer, ec))
+        return;
+    const fs::path script = installer.parent_path() / "EscalopWorkshop_Update.cmd";
+    {
+        boost::nowide::ofstream f(script.string(), std::ios::binary);
+        // Wait until no Escalop Workshop is running any more, then install
+        f << "@echo off\r\nchcp 65001 >nul\r\n:wait\r\n"
+          << "ping -n 3 127.0.0.1 >nul\r\n"
+          << "tasklist /FI \"IMAGENAME eq orca-slicer.exe\" /NH | find /I \"orca-slicer.exe\" >nul\r\n"
+          << "if not errorlevel 1 goto wait\r\n"
+          << "\"" << installer.string() << "\" /S\r\n"
+          << "del \"" << installer.string() << "\"\r\n"
+          << "(goto) 2>nul & del \"%~f0\"\r\n";
+        if (!f.good())
+            return;
+    }
+    std::wstring        cmd     = L"cmd.exe /c \"\"" + script.wstring() + L"\"\"";
+    STARTUPINFOW        si      = {};
+    PROCESS_INFORMATION pi      = {};
+    si.cb          = sizeof(si);
+    si.dwFlags     = STARTF_USESHOWWINDOW;
+    si.wShowWindow = SW_HIDE;
+    if (::CreateProcessW(nullptr, cmd.data(), nullptr, nullptr, FALSE,
+                         CREATE_NO_WINDOW | DETACHED_PROCESS | CREATE_BREAKAWAY_FROM_JOB, nullptr, nullptr, &si, &pi) ||
+        ::CreateProcessW(nullptr, cmd.data(), nullptr, nullptr, FALSE, CREATE_NO_WINDOW | DETACHED_PROCESS, nullptr, nullptr,
+                         &si, &pi)) {
+        ::CloseHandle(pi.hThread);
+        ::CloseHandle(pi.hProcess);
+    } else
+        BOOST_LOG_TRIVIAL(error) << "Update: the install script was not started, error " << ::GetLastError();
 }
 
 static void escalop_start_update(const std::string& url, unsigned long long size, const std::string& version)
@@ -2661,6 +2664,9 @@ bool GUI_App::OnInit()
 
 int GUI_App::OnExit()
 {
+#ifdef _WIN32
+    escalop_install_pending_update();
+#endif
     stop_http_server();
     stop_sync_user_preset();
 

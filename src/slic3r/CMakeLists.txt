@@ -64,6 +64,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Calibration.hpp
     GUI/CalibrationPanel.cpp
     GUI/CalibrationPanel.hpp
+    GUI/FirmwarePanel.cpp
+    GUI/FirmwarePanel.hpp
     GUI/CalibrationWizardCaliPage.cpp
     GUI/CalibrationWizardCaliPage.hpp
     GUI/CalibrationWizard.cpp
@@ -597,6 +599,8 @@ set(SLIC3R_GUI_SOURCES
     Utils/ESP3D.cpp
     Utils/ESP3D.hpp
     Utils/FileHelp.cpp
+    Utils/AvrFlasher.cpp
+    Utils/AvrFlasher.hpp
     Utils/FileHelp.hpp
     Utils/FixModelByCgal.cpp
     Utils/FixModelByCgal.hpp

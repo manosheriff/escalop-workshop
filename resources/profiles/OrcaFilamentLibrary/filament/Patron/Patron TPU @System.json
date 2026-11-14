@@ -4,6 +4,7 @@
     "inherits": "fdm_filament_tpu",
     "from": "system",
     "setting_id": "n0A4bps7SycZVX2Q",
+    "filament_id": "EPU01",
     "instantiation": "true",
     "filament_vendor": [
         "Patron"

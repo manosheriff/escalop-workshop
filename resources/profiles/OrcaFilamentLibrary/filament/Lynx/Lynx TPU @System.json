@@ -4,6 +4,7 @@
     "inherits": "fdm_filament_tpu",
     "from": "system",
     "setting_id": "osxfvTXWJyQOg1Aw",
+    "filament_id": "ELU01",
     "instantiation": "true",
     "filament_vendor": [
         "Lynx"

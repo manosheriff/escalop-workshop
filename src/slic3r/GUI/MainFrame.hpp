@@ -49,6 +49,7 @@ namespace GUI
 
 class Tab;
 class PrintHostQueueDialog;
+class FirmwarePanel;
 class Plater;
 class MainFrame;
 class ParamsDialog;
@@ -383,6 +384,7 @@ public:
     ProjectPanel*         m_project{ nullptr };
 
     CalibrationPanel*     m_calibration{ nullptr };
+    FirmwarePanel*        m_firmware{ nullptr }; // Escaloplab: always the last tab
     WebViewPanel*         m_webview { nullptr };
     PrinterWebView*       m_printer_view{nullptr};
     wxLogWindow*          m_log_window { nullptr };

@@ -4,6 +4,7 @@
     "inherits": "fdm_filament_pla",
     "from": "system",
     "setting_id": "hcSrIcLWmZd7g0De",
+    "filament_id": "EPL01",
     "instantiation": "true",
     "filament_vendor": [
         "Patron"

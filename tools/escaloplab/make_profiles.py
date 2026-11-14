@@ -290,6 +290,9 @@ def bed_texture(path: Path, x, y):
 # generic ones for each material until Escaloplab calibrates them.
 FILAMENT_BRANDS = ["Patron", "Lynx"]
 FILAMENT_TYPES = [("PLA", "fdm_filament_pla"), ("PETG", "fdm_filament_pet"), ("TPU", "fdm_filament_tpu"), ("ABS", "fdm_filament_abs")]
+# Every instantiated filament needs a filament_id, and the TPU and ABS bases don't carry one
+# (the app refuses those presets without it). Ids follow Orca's letters: L PLA, G PETG, U TPU, B ABS.
+FILAMENT_ID_LETTER = {"PLA": "L", "PETG": "G", "TPU": "U", "ABS": "B"}
 LIBRARY = OUT / "OrcaFilamentLibrary"
 
 
@@ -316,6 +319,7 @@ def write_filaments():
                 "name": name,
                 "inherits": base,
                 "from": "system",
+                "filament_id": f"E{brand[0]}{FILAMENT_ID_LETTER[t]}01",
                 "instantiation": "true",
                 "filament_vendor": [brand],
                 "compatible_printers": [],
@@ -323,7 +327,7 @@ def write_filaments():
             added.append({"name": name, "sub_path": f"filament/{brand}/{name}.json"})
     lib["filament_list"] = entries + added
     # Newer than OrcaSlicer 2.4.2's library, so installed copies are replaced
-    lib["version"] = "02.04.00.10"
+    lib["version"] = "02.04.00.11"
     dump(lib_json, lib)
     return len(added)
 

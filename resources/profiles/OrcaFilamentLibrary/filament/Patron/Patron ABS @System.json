@@ -4,6 +4,7 @@
     "inherits": "fdm_filament_abs",
     "from": "system",
     "setting_id": "HRh8ZwcLMDFeoXGb",
+    "filament_id": "EPB01",
     "instantiation": "true",
     "filament_vendor": [
         "Patron"

@@ -1,4 +1,5 @@
 #include "MainFrame.hpp"
+#include "FirmwarePanel.hpp"
 
 #include <wx/panel.h>
 #include <wx/notebook.h>
@@ -573,6 +574,14 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
     // declare events
     Bind(wxEVT_CLOSE_WINDOW, [this](wxCloseEvent& event) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__<< ": mainframe received close_widow event";
+        // Escaloplab: closing in the middle of a firmware update leaves the printer without firmware
+        // until the update is run again
+        if (event.CanVeto() && m_firmware && m_firmware->is_busy()) {
+            MessageDialog(this, _L("The printer's firmware is being updated. Please wait until it's done."),
+                          _L("Firmware update"), wxOK | wxICON_WARNING).ShowModal();
+            event.Veto();
+            return;
+        }
         if (event.CanVeto() && m_plater->get_view3D_canvas3D()->get_gizmos_manager().is_in_editing_mode(true)) {
             // prevents to open the save dirty project dialog
             event.Veto();
@@ -1273,6 +1282,9 @@ void MainFrame::init_tabpanel() {
         else if (panel == m_monitor) {
             //monitor
         }
+        else if (panel == m_firmware) {
+            m_firmware->on_activate();
+        }
 #ifndef __APPLE__
         if (sel == tp3DEditor) {
             m_topbar->EnableUndoRedoItems();
@@ -1352,6 +1364,12 @@ void MainFrame::init_tabpanel() {
     m_calibration->SetBackgroundColour(*wxWHITE);
     m_tabpanel->AddPage(m_calibration, _L("Calibration"), std::string("tab_calibration_active"), std::string("tab_calibration_active"), false);
 
+    // Escaloplab: update the printer's firmware over USB
+    if (wxGetApp().is_editor()) {
+        m_firmware = new FirmwarePanel(m_tabpanel);
+        m_tabpanel->AddPage(m_firmware, _L("Firmware"), std::string("tab_firmware_active"), std::string("tab_firmware_active"), false);
+    }
+
     if (m_plater) {
         // load initial config
         auto full_config = wxGetApp().preset_bundle->full_config();
@@ -1407,6 +1425,11 @@ void MainFrame::show_device(bool bBBLPrinter) {
         // the calibration tab won't be properly added as well, due to the TabPosition::tpCalibration no longer matches the real tab position.
         m_tabpanel->AddPage(m_calibration, _L("Calibration"), std::string("tab_calibration_active"),
                                std::string("tab_calibration_active"), false);
+        // Escaloplab: the firmware tab stays after Calibration
+        if (m_firmware && (idx = m_tabpanel->FindPage(m_firmware)) != wxNOT_FOUND) {
+            m_tabpanel->RemovePage(idx);
+            m_tabpanel->AddPage(m_firmware, _L("Firmware"), std::string("tab_firmware_active"), std::string("tab_firmware_active"), false);
+        }
 
 #ifdef _MSW_DARK_MODE
         wxGetApp().UpdateDarkUIWin(this);
@@ -2467,6 +2490,8 @@ void MainFrame::on_dpi_changed(const wxRect& suggested_rect)
         m_multi_machine->msw_rescale();
     if(m_calibration)
         m_calibration->msw_rescale();
+    if (m_firmware)
+        m_firmware->msw_rescale();
 
     // BBS
 #if 0
@@ -2532,6 +2557,8 @@ void MainFrame::on_sys_color_changed()
         m_monitor->on_sys_color_changed();
     if(m_calibration)
         m_calibration->on_sys_color_changed();
+    if (m_firmware)
+        m_firmware->on_sys_color_changed();
     // update Tabs
     for (auto tab : wxGetApp().tabs_list)
         tab->sys_color_changed();

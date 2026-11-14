@@ -1282,7 +1282,7 @@ void MainFrame::init_tabpanel() {
         else if (panel == m_monitor) {
             //monitor
         }
-        else if (panel == m_firmware) {
+        else if (m_firmware && panel == m_firmware) { // during start-up both can still be null
             m_firmware->on_activate();
         }
 #ifndef __APPLE__

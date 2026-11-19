@@ -1,6 +1,6 @@
-# Publishing v80 firmware for the Firmware tab
+# Publishing v80 firmware for the Printer tab
 
-The app's **Firmware** tab installs the newest firmware release from this GitHub repository over USB
+The app's **Printer** tab (*Update firmware*) installs the newest firmware release from this GitHub repository over USB
 (ATmega2560 board, Arduino Mega bootloader, same as the Arduino IDE / avrdude "wiring" upload).
 
 ## Make a firmware release
@@ -27,5 +27,5 @@ the app's own updater ignores `firmware-` tags.
 - Put the version in Marlin's `SHORT_BUILD_VERSION` (e.g. `"Escaloplab 1.0.0"`) and set `MACHINE_NAME`;
   the tab's *Check printer* shows both (M115).
 - A new Marlin version can reset the EEPROM: tell customers to check the Z offset and re-run bed leveling
-  (the tab says so too).
+  (the app says so too).
 - Test a `.hex` before publishing with *Install it from this computer* at the bottom of the tab.

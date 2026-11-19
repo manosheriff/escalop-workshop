@@ -50,6 +50,7 @@ namespace GUI
 class Tab;
 class PrintHostQueueDialog;
 class FirmwarePanel;
+class PrinterPage;
 class Plater;
 class MainFrame;
 class ParamsDialog;
@@ -384,7 +385,8 @@ public:
     ProjectPanel*         m_project{ nullptr };
 
     CalibrationPanel*     m_calibration{ nullptr };
-    FirmwarePanel*        m_firmware{ nullptr }; // Escaloplab: always the last tab
+    FirmwarePanel*        m_firmware{ nullptr }; // Escaloplab: inside m_printer_page
+    PrinterPage*          m_printer_page{ nullptr }; // Escaloplab: the "Printer" tab for non-Bambu printers
     WebViewPanel*         m_webview { nullptr };
     PrinterWebView*       m_printer_view{nullptr};
     wxLogWindow*          m_log_window { nullptr };

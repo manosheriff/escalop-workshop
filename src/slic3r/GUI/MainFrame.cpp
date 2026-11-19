@@ -1,5 +1,6 @@
 #include "MainFrame.hpp"
 #include "FirmwarePanel.hpp"
+#include "PrinterPage.hpp"
 
 #include <wx/panel.h>
 #include <wx/notebook.h>
@@ -1282,8 +1283,8 @@ void MainFrame::init_tabpanel() {
         else if (panel == m_monitor) {
             //monitor
         }
-        else if (m_firmware && panel == m_firmware) { // during start-up both can still be null
-            m_firmware->on_activate();
+        else if (m_printer_page && panel == m_printer_page) { // during start-up both can still be null
+            m_printer_page->on_activate();
         }
 #ifndef __APPLE__
         if (sel == tp3DEditor) {
@@ -1338,16 +1339,20 @@ void MainFrame::init_tabpanel() {
         //BBS add pages
     m_monitor = new MonitorPanel(m_tabpanel, wxID_ANY, wxDefaultPosition, wxDefaultSize);
     m_monitor->SetBackgroundColour(*wxWHITE);
-    m_tabpanel->AddPage(m_monitor, _L("Device"), std::string("tab_monitor_active"), std::string("tab_monitor_active"), false);
+    m_tabpanel->AddPage(m_monitor, _L("Printer"), std::string("tab_monitor_active"), std::string("tab_monitor_active"), false);
 
-    m_printer_view = new PrinterWebView(m_tabpanel);
+    // Escaloplab: the printer's web page shares the "Printer" tab with the firmware update
+    m_printer_page = new PrinterPage(m_tabpanel, wxGetApp().is_editor());
+    m_printer_view = m_printer_page->web_view();
+    m_firmware     = m_printer_page->firmware();
     Bind(EVT_LOAD_PRINTER_URL, [this](LoadPrinterViewEvent &evt) {
         wxString url = evt.GetString();
         wxString key = evt.GetAPIkey();
         //select_tab(MainFrame::tpMonitor);
         m_printer_view->load_url(url, key);
+        m_printer_page->on_printer_url_loaded();
     });
-    m_printer_view->Hide();
+    m_printer_page->Hide();
 
     if (wxGetApp().is_enable_multi_machine()) {
         m_multi_machine = new MultiMachinePage(m_tabpanel, wxID_ANY, wxDefaultPosition, wxDefaultSize);
@@ -1363,12 +1368,6 @@ void MainFrame::init_tabpanel() {
     m_calibration = new CalibrationPanel(m_tabpanel, wxID_ANY, wxDefaultPosition, wxDefaultSize);
     m_calibration->SetBackgroundColour(*wxWHITE);
     m_tabpanel->AddPage(m_calibration, _L("Calibration"), std::string("tab_calibration_active"), std::string("tab_calibration_active"), false);
-
-    // Escaloplab: update the printer's firmware over USB
-    if (wxGetApp().is_editor()) {
-        m_firmware = new FirmwarePanel(m_tabpanel);
-        m_tabpanel->AddPage(m_firmware, _L("Firmware"), std::string("tab_firmware_active"), std::string("tab_firmware_active"), false);
-    }
 
     if (m_plater) {
         // load initial config
@@ -1393,8 +1392,8 @@ void MainFrame::show_device(bool bBBLPrinter) {
             return;
         }
         // Remove printer view
-        if ((idx = m_tabpanel->FindPage(m_printer_view)) != wxNOT_FOUND) {
-            m_printer_view->Show(false);
+        if ((idx = m_tabpanel->FindPage(m_printer_page)) != wxNOT_FOUND) {
+            m_printer_page->Show(false);
             m_tabpanel->RemovePage(idx);
         }
 
@@ -1404,7 +1403,7 @@ void MainFrame::show_device(bool bBBLPrinter) {
             m_monitor->SetBackgroundColour(*wxWHITE);
         }
         m_monitor->Show(false);
-        m_tabpanel->InsertPage(tpMonitor, m_monitor, _L("Device"), std::string("tab_monitor_active"), std::string("tab_monitor_active"));
+        m_tabpanel->InsertPage(tpMonitor, m_monitor, _L("Printer"), std::string("tab_monitor_active"), std::string("tab_monitor_active"));
 
         if (wxGetApp().is_enable_multi_machine()) {
             if (!m_multi_machine) {
@@ -1425,18 +1424,13 @@ void MainFrame::show_device(bool bBBLPrinter) {
         // the calibration tab won't be properly added as well, due to the TabPosition::tpCalibration no longer matches the real tab position.
         m_tabpanel->AddPage(m_calibration, _L("Calibration"), std::string("tab_calibration_active"),
                                std::string("tab_calibration_active"), false);
-        // Escaloplab: the firmware tab stays after Calibration
-        if (m_firmware && (idx = m_tabpanel->FindPage(m_firmware)) != wxNOT_FOUND) {
-            m_tabpanel->RemovePage(idx);
-            m_tabpanel->AddPage(m_firmware, _L("Firmware"), std::string("tab_firmware_active"), std::string("tab_firmware_active"), false);
-        }
 
 #ifdef _MSW_DARK_MODE
         wxGetApp().UpdateDarkUIWin(this);
 #endif // _MSW_DARK_MODE
 
     } else {
-        if (m_tabpanel->FindPage(m_printer_view) != wxNOT_FOUND) {
+        if (m_tabpanel->FindPage(m_printer_page) != wxNOT_FOUND) {
             fit_tab_labels(); // ORCA on printer change - same button layout
             return;
         }
@@ -1452,17 +1446,9 @@ void MainFrame::show_device(bool bBBLPrinter) {
             m_monitor->Show(false);
             m_tabpanel->RemovePage(idx);
         }
-        if (m_printer_view == nullptr) {
-            m_printer_view = new PrinterWebView(m_tabpanel);
-            Bind(EVT_LOAD_PRINTER_URL, [this](LoadPrinterViewEvent& evt) {
-                wxString url = evt.GetString();
-                wxString key = evt.GetAPIkey();
-                // select_tab(MainFrame::tpMonitor);
-                m_printer_view->load_url(url, key);
-            });
-        }
-        m_printer_view->Show(false);
-        m_tabpanel->InsertPage(tpMonitor, m_printer_view, _L("Device"), std::string("tab_monitor_active"),
+        // Escaloplab: the page (made in init_tabpanel) holds the printer's web page and the firmware update
+        m_printer_page->Show(false);
+        m_tabpanel->InsertPage(tpMonitor, m_printer_page, _L("Printer"), std::string("tab_monitor_active"),
                                std::string("tab_monitor_active"));
     }
     fit_tab_labels(); // ORCA on printer change
@@ -2490,8 +2476,8 @@ void MainFrame::on_dpi_changed(const wxRect& suggested_rect)
         m_multi_machine->msw_rescale();
     if(m_calibration)
         m_calibration->msw_rescale();
-    if (m_firmware)
-        m_firmware->msw_rescale();
+    if (m_printer_page)
+        m_printer_page->msw_rescale();
 
     // BBS
 #if 0
@@ -2557,8 +2543,8 @@ void MainFrame::on_sys_color_changed()
         m_monitor->on_sys_color_changed();
     if(m_calibration)
         m_calibration->on_sys_color_changed();
-    if (m_firmware)
-        m_firmware->on_sys_color_changed();
+    if (m_printer_page)
+        m_printer_page->on_sys_color_changed();
     // update Tabs
     for (auto tab : wxGetApp().tabs_list)
         tab->sys_color_changed();

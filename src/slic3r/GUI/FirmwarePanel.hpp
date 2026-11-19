@@ -20,7 +20,7 @@ namespace GUI {
 class HyperLink;
 class FirmwareStepBadge;
 
-// Escaloplab: the "Firmware" tab. Installs the newest Escaloplab firmware (published as a GitHub release
+// Escaloplab: "Update firmware" on the Printer tab (see PrinterPage). Installs the newest Escaloplab firmware (published as a GitHub release
 // tagged "firmware-vX.Y.Z" with one .hex per printer model) on a printer connected over USB.
 class FirmwarePanel : public wxScrolledWindow
 {

@@ -388,8 +388,8 @@ void AvrFlasher::flash(const std::string& port, const FirmwareImage& image, cons
 
 boost::optional<PrinterFirmwareInfo> AvrFlasher::query(const std::string& port)
 {
-    // Marlin's usual speeds on 8-bit boards
-    for (unsigned baud : {250000u, 115200u}) {
+    // Escaloplab's Marlin 1.7+ runs at 1000000 (for its Wi-Fi module); older ones and stock Marlin at 250000/115200
+    for (unsigned baud : {1000000u, 250000u, 115200u}) {
         SerialLink link(port, baud);
         link.reset_board(); // Marlin starts after the bootloader's wait
         const auto  until    = Clock::now() + std::chrono::seconds(7);

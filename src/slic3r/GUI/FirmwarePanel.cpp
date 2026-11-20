@@ -128,7 +128,7 @@ FirmwarePanel::FirmwarePanel(wxWindow* parent)
         for (const auto& model : it->second.models)
             m_models.push_back(model.id);
     if (m_models.empty())
-        m_models = {"Escaloplab v80", "Escaloplab v80 Direct"};
+        m_models = {"Escaloplab v80"};
     // Start on the printer chosen in the slicer
     const std::string current = wxGetApp().preset_bundle->printers.get_edited_preset().config.opt_string("printer_model");
     m_model = std::find(m_models.begin(), m_models.end(), current) != m_models.end() ? current : m_models.front();

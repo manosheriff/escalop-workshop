@@ -82,7 +82,7 @@ static const std::vector<std::string> printer_vendors =
      "Vzbot",              "Wanhao",             "Z-Bolt"};
 
 static const std::unordered_map<std::string, std::vector<std::string>> printer_model_map =
-    {{"Escaloplab",        {"Escaloplab v80", "Escaloplab v80 Direct"}},
+    {{"Escaloplab",        {"Escaloplab v80"}},
      {"Anker",             {"Anker M5",                   "Anker M5 All-Metal Hot End", "Anker M5C"}},
      {"Anycubic",          {"Anycubic i3 Mega S",    "Anycubic Chiron",       "Anycubic Vyper",        "Anycubic Kobra",        "Anycubic Kobra Max",
                             "Anycubic Kobra Plus",   "Anycubic 4Max Pro",     "Anycubic 4Max Pro 2",   "Anycubic Kobra 2",      "Anycubic Kobra 2 Plus",

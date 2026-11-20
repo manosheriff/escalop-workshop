@@ -1,0 +1,53 @@
+# Escalop v80 Wi-Fi module (ESP-01): builds tools/escaloplab/esp01 with PlatformIO.
+# Artifact:
+#   EscalopV80_WiFi_<version>.bin     first installation with a USB-serial adapter (esptool / Arduino IDE)
+#   EscalopV80_WiFi_<version>.bin.gz  the release asset the modules update themselves from (tag wifi-v<version>)
+name: Escalop v80 Wi-Fi module
+
+on:
+  push:
+    branches:
+      - escalop
+    paths:
+      - 'tools/escaloplab/esp01/**'
+      - '.github/workflows/escalop_esp01.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tools/escaloplab/esp01
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Cache PlatformIO
+        uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: pio-esp8266-${{ hashFiles('tools/escaloplab/esp01/platformio.ini') }}
+
+      - name: Build
+        run: |
+          pip install --quiet platformio
+          pio run
+
+      - name: Package
+        id: package
+        run: |
+          version=$(sed -n 's/^#define WIFI_VERSION "\(.*\)"/\1/p' EscalopWiFi/config.h)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          mkdir -p out
+          cp .pio/build/esp01/firmware.bin "out/EscalopV80_WiFi_${version}.bin"
+          gzip -9 -n -c .pio/build/esp01/firmware.bin > "out/EscalopV80_WiFi_${version}.bin.gz"
+          ls -l out
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: EscalopV80_WiFi_${{ steps.package.outputs.version }}
+          path: tools/escaloplab/esp01/out/*

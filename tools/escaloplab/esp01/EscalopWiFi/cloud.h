@@ -1,0 +1,27 @@
+#pragma once
+
+#include <Arduino.h>
+#include <functional>
+
+// Everything that needs the internet: GitHub releases (printer firmware and this module's software) and the
+// check-in with escaloplab.com that hands out the printer's serial number. All HTTPS, with certificate checks.
+
+namespace Cloud {
+
+// Sets the clock from the internet (certificates need the date). True once the time is known.
+bool ensureTime();
+
+// The newest published (not draft, not pre-release) release whose tag is <tagPrefix><X.Y.Z>, and the URL of its
+// asset ending in `extension` (".hex" or ".bin"). False with `error` on network problems; true with an empty
+// `version` when there is no such release.
+bool latestRelease(const char* tagPrefix, const char* extension, String& version, String& url, String& error);
+
+// Downloads `url` (following GitHub's redirect), giving the body to `sink` piece by piece.
+// progress(received, total or -1). False with `error` when anything fails, including `sink` returning false.
+bool download(const String& url, const std::function<bool(const uint8_t*, size_t)>& sink,
+              const std::function<void(uint32_t, int32_t)>& progress, String& error);
+
+// Tells escaloplab.com about this printer and gets its serial number back (PROTOCOL.md / the website's API)
+bool checkin(const String& printerFirmware, String& serial, String& error);
+
+} // namespace Cloud

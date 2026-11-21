@@ -1,13 +1,14 @@
 #include "HyperLink.hpp"
 #include "Label.hpp"
+#include "../EscalopTheme.hpp" // Escaloplab: theme color
 
 namespace Slic3r { namespace GUI {
 
 HyperLink::HyperLink(wxWindow* parent, const wxString& label, const wxString& url, long style)
     : wxStaticText(parent, wxID_ANY, label)
     , m_url(url)
-    , m_normalColor(wxColour("#FF2E8A")) // used slightly different color otherwise automatically uses ColorForDark that not visible enough
-    , m_hoverColor(wxColour("#FF5CA3"))
+    , m_normalColor(ESCALOP_ACCENT) // used slightly different color otherwise automatically uses ColorForDark that not visible enough
+    , m_hoverColor(ESCALOP_ACCENT_HOVER)
 {
     SetForegroundColour(m_normalColor);
     HyperLink::SetFont(Label::Head_14);

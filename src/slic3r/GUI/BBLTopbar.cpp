@@ -17,6 +17,7 @@
 
 #include <boost/log/trivial.hpp>
 
+#include "EscalopTheme.hpp" // Escaloplab: theme color
 #ifdef __WXGTK__
 #include <gtk/gtk.h>
 #endif
@@ -36,6 +37,7 @@ enum CUSTOM_ID
     ID_MODEL_STORE,
     ID_PUBLISH,
     ID_CALIB,
+    ID_THEME_COLOR, // Escaloplab: theme color circle
     ID_TOOL_BAR = 3200,
     ID_AMS_NOTEBOOK,
 };
@@ -165,19 +167,19 @@ void BBLTopbarArt::DrawButton(wxDC& dc, wxWindow* wnd, const wxAuiToolBarItem& i
     {
         if (item.GetState() & wxAUI_BUTTON_STATE_PRESSED)
         {
-            dc.SetPen(wxPen(StateColor::darkModeColorFor("#FF2E8A"))); // ORCA
-            dc.SetBrush(wxBrush(StateColor::darkModeColorFor("#FF2E8A"))); // ORCA
+            dc.SetPen(wxPen(StateColor::darkModeColorFor(ESCALOP_ACCENT))); // ORCA
+            dc.SetBrush(wxBrush(StateColor::darkModeColorFor(ESCALOP_ACCENT))); // ORCA
             dc.DrawRectangle(rect);
         }
         else if ((item.GetState() & wxAUI_BUTTON_STATE_HOVER) || item.IsSticky())
         {
-            dc.SetPen(wxPen(StateColor::darkModeColorFor("#FF2E8A"))); // ORCA
-            dc.SetBrush(wxBrush(StateColor::darkModeColorFor("#FF2E8A"))); // ORCA
+            dc.SetPen(wxPen(StateColor::darkModeColorFor(ESCALOP_ACCENT))); // ORCA
+            dc.SetBrush(wxBrush(StateColor::darkModeColorFor(ESCALOP_ACCENT))); // ORCA
 
             // draw an even lighter background for checked item hovers (since
             // the hover background is the same color as the check background)
             if (item.GetState() & wxAUI_BUTTON_STATE_CHECKED)
-                dc.SetBrush(wxBrush(StateColor::darkModeColorFor("#FF2E8A"))); // ORCA
+                dc.SetBrush(wxBrush(StateColor::darkModeColorFor(ESCALOP_ACCENT))); // ORCA
 
             dc.DrawRectangle(rect);
         }
@@ -185,8 +187,8 @@ void BBLTopbarArt::DrawButton(wxDC& dc, wxWindow* wnd, const wxAuiToolBarItem& i
         {
             // it's important to put this code in an else statement after the
             // hover, otherwise hovers won't draw properly for checked items
-            dc.SetPen(wxPen(StateColor::darkModeColorFor("#FF2E8A"))); // ORCA
-            dc.SetBrush(wxBrush(StateColor::darkModeColorFor("#FF2E8A"))); // ORCA
+            dc.SetPen(wxPen(StateColor::darkModeColorFor(ESCALOP_ACCENT))); // ORCA
+            dc.SetBrush(wxBrush(StateColor::darkModeColorFor(ESCALOP_ACCENT))); // ORCA
             dc.DrawRectangle(rect);
         }
     }
@@ -316,6 +318,11 @@ void BBLTopbar::Init(wxFrame* parent)
     m_calib_item                   = this->AddTool(ID_CALIB, _L("Calibration"), calib_bitmap);
     m_calib_item->SetDisabledBitmap(calib_bitmap_inactive);
 
+    // Escaloplab: the theme color, as a circle in that color; click to choose another
+    this->AddSpacer(FromDIP(12));
+    wxAuiToolBarItem* theme_item = this->AddTool(ID_THEME_COLOR, "", Slic3r::GUI::Escalop::circle_bitmap(FromDIP(TOPBAR_ICON_SIZE)));
+    theme_item->SetShortHelp(_L("Theme color"));
+
     this->AddSpacer(FromDIP(25));
     //this->AddStretchSpacer(1);
 
@@ -376,6 +383,7 @@ void BBLTopbar::Init(wxFrame* parent)
     this->Bind(wxEVT_AUITOOLBAR_TOOL_DROPDOWN, &BBLTopbar::OnFileToolItem, this, ID_TOP_FILE_MENU);
     this->Bind(wxEVT_AUITOOLBAR_TOOL_DROPDOWN, &BBLTopbar::OnDropdownToolItem, this, ID_TOP_DROPDOWN_MENU);
     this->Bind(wxEVT_AUITOOLBAR_TOOL_DROPDOWN, &BBLTopbar::OnCalibToolItem, this, ID_CALIB);
+    this->Bind(wxEVT_AUITOOLBAR_TOOL_DROPDOWN, [this](wxAuiToolBarEvent&) { Slic3r::GUI::Escalop::choose_accent(m_frame ? (wxWindow*) m_frame : this); }, ID_THEME_COLOR);
     this->Bind(wxEVT_AUITOOLBAR_TOOL_DROPDOWN, &BBLTopbar::OnIconize, this, wxID_ICONIZE_FRAME);
     this->Bind(wxEVT_AUITOOLBAR_TOOL_DROPDOWN, &BBLTopbar::OnFullScreen, this, wxID_MAXIMIZE_FRAME);
     this->Bind(wxEVT_AUITOOLBAR_TOOL_DROPDOWN, &BBLTopbar::OnCloseFrame, this, wxID_CLOSE_FRAME);
@@ -551,6 +559,9 @@ void BBLTopbar::Rescale() {
 
     item = this->FindTool(wxID_SAVE);
     item->SetBitmap(create_scaled_bitmap("topbar_save", this, TOPBAR_ICON_SIZE));
+
+    if ((item = this->FindTool(ID_THEME_COLOR)))
+        item->SetBitmap(Slic3r::GUI::Escalop::circle_bitmap(FromDIP(TOPBAR_ICON_SIZE)));
 
     item = this->FindTool(wxID_UNDO);
     item->SetBitmap(create_scaled_bitmap("topbar_undo", this, TOPBAR_ICON_SIZE));

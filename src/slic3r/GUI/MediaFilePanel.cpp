@@ -16,6 +16,7 @@
 #ifdef __WXMSW__
 #include <shellapi.h>
 #endif
+#include "EscalopTheme.hpp" // Escaloplab: theme color
 #ifdef __APPLE__
 #include "../Utils/MacDarkMode.hpp"
 #endif
@@ -117,11 +118,11 @@ MediaFilePanel::MediaFilePanel(wxWindow * parent)
     m_button_delete->SetBorderColorNormal(wxColor("#FF6F00"));
     m_button_delete->SetTextColorNormal(wxColor("#FF6F00"));
     m_button_management->SetBorderWidth(0);
-    m_button_management->SetBackgroundColorNormal(wxColor("#FF2E8A"));
+    m_button_management->SetBackgroundColorNormal(ESCALOP_ACCENT);
     m_button_management->SetTextColorNormal(*wxWHITE);
     m_button_management->Enable(false);
     m_button_refresh->SetBorderWidth(0);
-    m_button_refresh->SetBackgroundColorNormal(wxColor("#FF2E8A"));
+    m_button_refresh->SetBackgroundColorNormal(ESCALOP_ACCENT);
     m_button_refresh->SetTextColorNormal(*wxWHITE);
     m_button_refresh->Enable(false);
 

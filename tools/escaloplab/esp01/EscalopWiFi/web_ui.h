@@ -40,6 +40,8 @@ ul.list{list-style:none;margin:0;padding:0}
 ul.list li{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
 ul.list li:first-child{border-top:0}
 ul.list .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ul.list li.folder{color:var(--muted);font-size:14px;padding-top:14px}
+ul.list li.infolder{padding-left:22px}
 .net{cursor:pointer;border-radius:12px;padding:10px 8px!important}
 .net.sel{background:var(--bg);outline:2px solid var(--rose)}
 .msg{padding:10px 14px;border-radius:14px;background:var(--bg);margin-top:12px}
@@ -48,6 +50,10 @@ ul.list .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-sp
 small,.small{font-size:13px;color:var(--muted)}
 a{color:var(--rose-ink)}
 footer{text-align:center;padding:8px 0 24px}
+@media (min-width:900px){.cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}.cards .card{margin-bottom:0}}
+.embed .wrap{max-width:none;padding:20px 28px}
+.embed header{display:none}
+.embed footer{text-align:left;padding-top:16px}
 )CSS";
 
 // Three neon chevrons, as on escaloplab.com
@@ -125,6 +131,7 @@ scan();
 static const char PAGE_MAIN[] PROGMEM = PAGE_HEAD("Escaloplab v80") R"HTML(
 <header>)HTML" LOGO_SVG R"HTML(<div class="grow"><h1>Escaloplab v80</h1><div class="sub" id="serial"></div></div><span class="pill" id="conn">...</span></header>
 
+<div class="cards">
 <div class="card">
   <div class="row"><h2 class="grow" id="state" style="margin:0">Printer</h2><span class="pill" id="sdPill"></span></div>
   <div id="job" class="hidden"><div class="small" id="jobName"></div><div class="bar"><i id="jobBar"></i></div></div>
@@ -156,13 +163,17 @@ static const char PAGE_MAIN[] PROGMEM = PAGE_HEAD("Escaloplab v80") R"HTML(
 <div class="card">
   <h2>Wi-Fi</h2>
   <div class="small" id="wifi"></div>
-  <p class="small">To print from Escalop Workshop: click the network button next to the printer name on the Prepare tab, choose <b>OctoPrint</b>, enter <b id="addr"></b>, click Test, then OK.</p>
+  <p class="small">Escalop Workshop finds this printer by itself: open its <b>Printer</b> tab and choose this printer's serial number. Its address is <b id="addr"></b>.</p>
   <div class="row"><button class="danger" id="forget">Forget this Wi-Fi</button></div>
+</div>
 </div>
 <footer class="small"><a href="/log">Log</a> &middot; <a href="/update">Wi-Fi module software</a></footer>
 </div>
 <script>
 const $=id=>document.getElementById(id);let st=null,busy=false;
+// Inside Escalop Workshop's Printer tab: its theme color, no own header (?embed=1&accent=RRGGBB)
+(()=>{const q=new URLSearchParams(location.search),a=q.get('accent');if(a&&/^[0-9a-fA-F]{6}$/.test(a)){const r=document.documentElement.style;r.setProperty('--rose','#'+a);r.setProperty('--rose-ink','#'+a)}
+ if(q.get('embed'))document.body.classList.add('embed')})();
 function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
 function t(v){return v==null?'-':Math.round(v)+'&deg;'}
 async function post(url,data){const r=await fetch(url,{method:'POST',body:new URLSearchParams(data||{})});const x=await r.text();if(!r.ok)throw new Error(x||r.status);return x}
@@ -191,10 +202,16 @@ function render(){const p=st.printer,u=st.update;
  $('upBtn').disabled=busy||!p.online||p.printing}
 async function files(){try{const r=await(await fetch('/api/files')).json();const ul=$('files');ul.innerHTML='';
  if(!r.files.length){ul.innerHTML='<li class="small">'+(r.error?esc(r.error):'No print files on the card.')+'</li>';return}
- r.files.forEach(f=>{const li=document.createElement('li');li.innerHTML='<span class="name"></span><span class="small">'+(f.size/1048576).toFixed(1)+' MB</span><button class="ghost">Print</button><button class="danger">Delete</button>';
- li.querySelector('.name').textContent=f.long||f.name;const b=li.querySelectorAll('button');
- b[0].onclick=()=>post('/api/job',{action:'print',name:f.name}).then(refresh).catch(e=>alert(e.message));
- b[1].onclick=()=>{if(confirm('Delete '+(f.long||f.name)+'?'))post('/api/job',{action:'delete',name:f.name}).then(files).catch(e=>alert(e.message))};ul.appendChild(li)})}catch(e){}}
+ // Group by folder: the long path when Marlin gives one, else the 8.3 path
+ const groups={};r.files.forEach(f=>{const p=(f.long||f.name).replace(/^\/+/,'');const i=p.lastIndexOf('/');
+  const dir=i<0?'':p.slice(0,i);f.title=i<0?p:p.slice(i+1);(groups[dir]=groups[dir]||[]).push(f)});
+ Object.keys(groups).sort().forEach(dir=>{if(dir){const h=document.createElement('li');h.className='folder';h.innerHTML='&#128193; <b></b>';
+  h.querySelector('b').textContent=dir;ul.appendChild(h)}
+  groups[dir].forEach(f=>{const li=document.createElement('li');if(dir)li.className='infolder';
+  li.innerHTML='<span class="name"></span><span class="small">'+(f.size/1048576).toFixed(1)+' MB</span><button class="ghost">Print</button><button class="danger">Delete</button>';
+  li.querySelector('.name').textContent=f.title;const b=li.querySelectorAll('button');
+  b[0].onclick=()=>post('/api/job',{action:'print',name:f.name}).then(refresh).catch(e=>alert(e.message));
+  b[1].onclick=()=>{if(confirm('Delete '+f.title+'?'))post('/api/job',{action:'delete',name:f.name}).then(files).catch(e=>alert(e.message))};ul.appendChild(li)})})}catch(e){}}
 document.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>{if(b.dataset.q&&!confirm(b.dataset.q))return;post('/api/control',{action:b.dataset.a}).then(refresh).catch(e=>alert(e.message))});
 $('reload').onclick=files;
 $('chk').onclick=()=>post('/api/update/check').then(()=>{$('upd').textContent='Checking. The Wi-Fi module restarts for this; the page is back in about 30 seconds.'});

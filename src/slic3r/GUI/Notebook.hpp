@@ -28,6 +28,7 @@ public:
     bool SetPageImage(size_t n, const std::string& bmp_name) const;
     void SetPageText(size_t n, const wxString& strText);
     void SetCompact(size_t n, bool compact); // ORCA
+    void ShowPage(size_t n, bool show);     // Escaloplab: hide a tab's button (the Home tab)
     wxString GetPageText(size_t n) const;
     wxFlexGridSizer* GetBtnsSizer(){return m_buttons_sizer;}; // ORCA
 

@@ -47,6 +47,7 @@
 #include "Gizmos/GLGizmoScale.hpp"
 
 #include "libslic3r/TriangleMeshDeal.hpp"
+#include "EscalopTheme.hpp" // Escaloplab: theme color
 namespace Slic3r
 {
 namespace GUI
@@ -99,7 +100,7 @@ public:
     }
     virtual void DrawFocusRect(        wxWindow *win, wxDC& dc, const wxRect& rect, int flags = 0) override
     {   // ORCA draw focus rectangle to improve consistency between platforms
-        dc.SetPen(  StateColor::darkModeColorFor(wxColour("#FF2E8A")));
+        dc.SetPen(  StateColor::darkModeColorFor(ESCALOP_ACCENT));
         dc.DrawRectangle(rect);
     }
     virtual void DrawTreeItemButton(   wxWindow *win, wxDC& dc, const wxRect& rect, int flags = 0) override

@@ -173,6 +173,7 @@
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevConfigUtil.h"
 #include "DeviceCore/DevDefs.h"
+#include "EscalopTheme.hpp" // Escaloplab: theme color
 
 using boost::optional;
 namespace fs = boost::filesystem;
@@ -1416,7 +1417,7 @@ bool Sidebar::priv::sync_extruder_list(bool &only_external_material)
 
 void Sidebar::priv::update_sync_status(const MachineObject *obj)
 {
-    StateColor not_synced_colour(std::pair<wxColour, int>(wxColour("#FF2E8A"), StateColor::Normal));
+    StateColor not_synced_colour(std::pair<wxColour, int>(ESCALOP_ACCENT, StateColor::Normal));
     auto clear_all_sync_status = [this, &not_synced_colour]() {
         panel_printer_preset->ShowBadge(false);
         panel_printer_bed->ShowBadge(false);
@@ -1739,8 +1740,8 @@ Sidebar::Sidebar(Plater *parent)
             wxColour bg_normal = "#FFFFFF";
             wxColour bg_focus  = "#FFEAF3";
             wxColour bd_normal = "#DBDBDB";
-            wxColour bd_hover  = "#FF2E8A";
-            wxColour bd_focus  = "#FF2E8A";
+            wxColour bd_hover  = ESCALOP_ACCENT;
+            wxColour bd_focus  = ESCALOP_ACCENT;
         };
         PanelColors panel_color;
 
@@ -2020,8 +2021,8 @@ Sidebar::Sidebar(Plater *parent)
                 std::pair<wxColour, int>(wxColour("#F8F8F8"), StateColor::Hovered),
                 std::pair<wxColour, int>(wxColour("#F8F8F8"), StateColor::Normal));
         StateColor btn_sync_bd_col(
-                std::pair<wxColour, int>(wxColour("#FF2E8A"), StateColor::Pressed),
-                std::pair<wxColour, int>(wxColour("#FF2E8A"), StateColor::Hovered),
+                std::pair<wxColour, int>(ESCALOP_ACCENT, StateColor::Pressed),
+                std::pair<wxColour, int>(ESCALOP_ACCENT, StateColor::Hovered),
                 std::pair<wxColour, int>(wxColour("#EEEEEE"), StateColor::Normal));
         btn_sync->SetBackgroundColor(btn_sync_bg_col);
         btn_sync->SetBorderColor(btn_sync_bd_col);
@@ -2237,7 +2238,7 @@ Sidebar::Sidebar(Plater *parent)
             e.Skip();
             return;
         }
-        p->m_search_bar->SetBorderColor(wxColour("#FF2E8A"));
+        p->m_search_bar->SetBorderColor(ESCALOP_ACCENT);
         wxPoint pos = this->p->m_search_bar->ClientToScreen(wxPoint(0, 0));
 #ifndef __WXGTK__
         pos.y += this->p->m_search_bar->GetRect().height;

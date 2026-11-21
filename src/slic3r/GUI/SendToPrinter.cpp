@@ -26,6 +26,7 @@
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevStorage.h"
 #include "slic3r/Utils/FileTransferUtils.hpp"
+#include "EscalopTheme.hpp" // Escaloplab: theme color
 
 
 namespace Slic3r {
@@ -369,7 +370,7 @@ SendToPrinterDialog::SendToPrinterDialog(Plater *plater)
 
     m_statictext_finish = new wxStaticText(m_panel_finish, wxID_ANY, _L("Send complete"), wxDefaultPosition, wxDefaultSize, 0);
     m_statictext_finish->Wrap(-1);
-    m_statictext_finish->SetForegroundColour(wxColour(255, 46, 138));
+    m_statictext_finish->SetForegroundColour(ESCALOP_ACCENT);
     m_sizer_finish_h->Add(m_statictext_finish, 0, wxALIGN_CENTER | wxALL, FromDIP(5));
 
     m_sizer_finish_v->Add(m_sizer_finish_h, 1, wxALIGN_CENTER, 0);

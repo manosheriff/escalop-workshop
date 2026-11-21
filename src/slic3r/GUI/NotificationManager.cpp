@@ -29,6 +29,7 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 #endif
 #include <imgui/imgui_internal.h>
+#include "EscalopTheme.hpp" // Escaloplab: theme color
 
 static constexpr float GAP_WIDTH = 10.0f;
 static constexpr float SPACE_RIGHT_PANEL = 10.0f;
@@ -238,8 +239,11 @@ void NotificationManager::PopNotification::use_bbl_theme()
 
 	m_WindowBkgColor = m_is_dark ? ImVec4(45 / 255.f, 45 / 255.f, 49 / 255.f, 1.f) : ImVec4(1, 1, 1, 1);
 	m_TextColor = m_is_dark ? ImVec4(224 / 255.f, 224 / 255.f, 224 / 255.f, 1.f) : ImVec4(.2f, .2f, .2f, 1.0f);
-	m_HyperTextColor = m_is_dark ? ImVec4(0, 0.588, 0.533, 1) : ImVec4(0, 0.588, 0.533, 1);
-	m_HyperTextColorHover = m_is_dark ? ImVec4(38.f / 255.f, 166.f / 255.f, 154.f / 255.f, 1) : ImVec4(0.f, 129.f / 255.f, 114.f / 255.f, 1); //#FF5CA3 / #E01A75;
+	// Escaloplab: links in the theme color
+	const wxColour& link_c = m_is_dark ? ESCALOP_ACCENT_HOVER : ESCALOP_ACCENT;
+	const wxColour& link_h = m_is_dark ? ESCALOP_ACCENT : ESCALOP_ACCENT_DARK;
+	m_HyperTextColor = ImVec4(link_c.Red() / 255.f, link_c.Green() / 255.f, link_c.Blue() / 255.f, 1);
+	m_HyperTextColorHover = ImVec4(link_h.Red() / 255.f, link_h.Green() / 255.f, link_h.Blue() / 255.f, 1);
 
 	m_is_dark ? push_style_color(ImGuiCol_Border, {62 / 255.f, 62 / 255.f, 69 / 255.f, 1.f}, true, m_current_fade_opacity) : push_style_color(ImGuiCol_Border, m_CurrentColor, true, m_current_fade_opacity);
     push_style_color(ImGuiCol_WindowBg, m_WindowBkgColor, true, m_current_fade_opacity);

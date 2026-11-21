@@ -21,6 +21,7 @@
 #include "wxExtensions.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 #include "GUI_App.hpp"
+#include "EscalopTheme.hpp" // Escaloplab: theme color
 #define MSG_DLG_MAX_SIZE wxSize(-1, FromDIP(464))//notice:ban setting the maximum width value
 namespace Slic3r {
 namespace GUI {
@@ -343,7 +344,7 @@ static void add_msg_content(wxWindow   *parent,
         msg_escaped = std::string("<pre><code>") + msg_escaped + "</code></pre>";
 
     if (!link_text.IsEmpty() && link_callback) {
-        msg_escaped += "<span><a href=\"#\" style=\"color:rgb(255, 46, 138); text-decoration:underline;\">" + std::string(link_text.ToUTF8().data()) + "</a></span>";
+        msg_escaped += std::string("<span><a href=\"#\" style=\"color:") + ESCALOP_ACCENT_HEX + "; text-decoration:underline;\">" + std::string(link_text.ToUTF8().data()) + "</a></span>";
     }
 
     html->SetPage("<html><body bgcolor=\"" + bgr_clr_str + "\"><font color=\"" + text_clr_str + "\">" + wxString::FromUTF8(msg_escaped.data()) + "</font></body></html>");

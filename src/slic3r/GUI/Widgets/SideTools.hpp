@@ -10,11 +10,12 @@
 #include "../GUI/Tabbook.hpp"
 #include "../DeviceManager.hpp"
 #include "../wxExtensions.hpp"
+#include "../EscalopTheme.hpp" // Escaloplab: theme color
 
 #define SIDE_TOOLS_GREY900 wxColour(38, 46, 48)
 #define SIDE_TOOLS_GREY600 wxColour(144, 144, 144)
 #define SIDE_TOOLS_GREY400 wxColour(206, 206, 206)
-#define SIDE_TOOLS_BRAND wxColour(255, 46, 138)
+#define SIDE_TOOLS_BRAND ESCALOP_ACCENT
 #define SIDE_TOOLS_LIGHT_GREEN wxColour(219, 253, 231)
 
 enum WifiSignal {

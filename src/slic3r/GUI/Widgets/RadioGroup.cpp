@@ -1,6 +1,7 @@
 #include "RadioGroup.hpp"
 #include "Label.hpp"
 #include "StateColor.hpp"
+#include "../EscalopTheme.hpp" // Escaloplab: theme color
 
 RadioGroup::RadioGroup(
     wxWindow* parent,
@@ -41,7 +42,7 @@ void RadioGroup::Create(
 
     m_focus_color = StateColor(
         std::pair(bg                 , (int)StateColor::NotFocused),
-        std::pair(wxColour("#FF2E8A"), (int)StateColor::Focused)
+        std::pair(ESCALOP_ACCENT, (int)StateColor::Focused)
     );
 
     auto bmp_size   = m_on.GetBmpSize();

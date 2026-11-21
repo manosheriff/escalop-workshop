@@ -1,6 +1,7 @@
 #include "CheckList.hpp"
 
 #include "slic3r/GUI/GUI_App.hpp"
+#include "../EscalopTheme.hpp" // Escaloplab: theme color
 
 CheckList::CheckList(
     wxWindow* parent,
@@ -37,7 +38,7 @@ CheckList::CheckList(
     fb_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto create_btn = [this] (wxString title, bool select){
         auto btn = new wxStaticText(f_bar, wxID_ANY, title);
-        btn->SetForegroundColour("#FF2E8A");
+        btn->SetForegroundColour(ESCALOP_ACCENT);
         btn->SetCursor(wxCURSOR_HAND);
         btn->SetFont(Label::Body_13);
         btn->Bind(wxEVT_LEFT_DOWN, [this, select](wxMouseEvent &e) {SelectAll(select);});

@@ -29,6 +29,7 @@
 #include "MediaPlayCtrl.h"
 
 #include "DeviceCore/DevManager.h"
+#include "EscalopTheme.hpp" // Escaloplab: theme color
 
 namespace Slic3r { namespace GUI {
 
@@ -162,7 +163,7 @@ PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _
     m_cnt_label = new Label(m_book_third_panel, wxEmptyString);
     m_cnt_label->Wrap(-1);
     m_cnt_label->SetBackgroundColour(*wxWHITE);
-    m_cnt_label->SetForegroundColour(wxColour(255, 46, 138));
+    m_cnt_label->SetForegroundColour(ESCALOP_ACCENT);
     m_cnt_label->SetFont(Label::Head_16);
     m_cnt_label->SetSize(wxSize(-1, FromDIP(20)));
     m_cnt_label->SetMaxSize(wxSize(-1, FromDIP(20)));
@@ -593,7 +594,7 @@ void PartSkipDialog::OnSwitchDrag(wxCommandEvent &event)
         m_switch_drag_btn->SetIcon("canvas_drag");
     } else {
         m_is_drag = true;
-        m_switch_drag_btn->SetBackgroundColor(wxColour(255, 46, 138));
+        m_switch_drag_btn->SetBackgroundColor(ESCALOP_ACCENT);
         m_switch_drag_btn->SetIcon("canvas_drag_active");
     }
     m_canvas->SwitchDrag(m_is_drag);

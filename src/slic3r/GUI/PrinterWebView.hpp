@@ -25,6 +25,7 @@
 #include <wx/tbarbase.h>
 #include "wx/textctrl.h"
 #include <wx/timer.h>
+#include <functional>
 #include <memory>
 
 
@@ -51,6 +52,9 @@ public:
 
     bool Show(bool show = true) override;
 
+    // Escaloplab: called when the printer's page can't be loaded (the printer is off or its address changed)
+    void set_on_load_error(std::function<void()> fn) { m_on_load_error = std::move(fn); }
+
 private:
     friend class PrinterWebViewHandler;
 
@@ -62,6 +66,7 @@ private:
     bool m_apikey_sent;
     wxString m_url_deferred;
     std::unique_ptr<PrinterWebViewHandler> m_handler;
+    std::function<void()> m_on_load_error;
 
     // DECLARE_EVENT_TABLE()
 };

@@ -4,12 +4,13 @@
 
 #include <wx/dcclient.h>
 #include <wx/dcgraph.h>
+#include "../EscalopTheme.hpp" // Escaloplab: theme color
 
 StateColor blank_bg(StateColor(std::make_pair(wxColour("#FFFFFF"), (int)StateColor::Normal)));
 static const wxColour BUTTON_BG_COL = wxColour("#EEEEEE");
 static const wxColour BUTTON_IN_BG_COL = wxColour("#CECECE");
 
-static const wxColour bd = wxColour(255, 46, 138);
+static const wxColour bd = ESCALOP_ACCENT;
 static const wxColour text_num_color   = wxColour("#898989");
 static const wxColour BUTTON_PRESS_COL = wxColour(172, 172, 172);
 static const double sqrt2 = std::sqrt(2);

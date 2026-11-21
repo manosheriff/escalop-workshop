@@ -3,6 +3,7 @@
 #include <wx/dcbuffer.h>
 #include <wx/utils.h>
 #include "wx/graphics.h"
+#include "EscalopTheme.hpp" // Escaloplab: theme color
 
 namespace Slic3r { namespace GUI {
 
@@ -11,7 +12,7 @@ static const wxColour BgSelectColor  = wxColour("#FFEAF3"); // ORCA
 static const wxColour BgDisableColor = wxColour("#CECECE");
 
 static const wxColour BorderNormalColor   = wxColour("#CECECE");
-static const wxColour BorderSelectedColor = wxColour("#FF2E8A");
+static const wxColour BorderSelectedColor = ESCALOP_ACCENT;
 static const wxColour BorderDisableColor  = wxColour("#EEEEEE");
 
 static const wxColour TextNormalBlackColor = wxColour("#262E30");

@@ -91,6 +91,7 @@
 #include "../Utils/PresetUpdater.hpp"
 #include "../Utils/PrintHost.hpp"
 #include "../Utils/Process.hpp"
+#include "EscalopTheme.hpp" // Escaloplab: theme color
 #include "../Utils/MacDarkMode.hpp"
 #include "../Utils/Http.hpp"
 #include "../Utils/InstanceID.hpp"
@@ -2672,6 +2673,14 @@ int GUI_App::OnExit()
 #ifdef _WIN32
     escalop_install_pending_update();
 #endif
+    // Escaloplab: the theme color changed, start again with it (not when an update installs: it needs the app closed)
+    if (Escalop::restart_requested()) {
+#ifdef _WIN32
+        boost::system::error_code ec;
+        if (s_escalop_pending_update.empty() || !boost::filesystem::exists(s_escalop_pending_update, ec))
+#endif
+            start_new_slicer();
+    }
     stop_http_server();
     stop_sync_user_preset();
 

@@ -10,6 +10,7 @@
 #include "libslic3r/Polygon.hpp"
 #include "MainFrame.hpp"
 #include "GUI_App.hpp"
+#include "EscalopTheme.hpp" // Escaloplab: theme color
 
 
 static const wxColour TEXT_LIGHT_GRAY = wxColour(107, 107, 107);
@@ -91,7 +92,7 @@ PublishDialog::PublishDialog(Plater *plater)
                           std::pair<wxColour, int>(TEXT_LIGHT_GRAY, StateColor::Normal));
     m_btn_cancel->SetFont(Label::Body_12);
     m_btn_cancel->SetBackgroundColor(btn_bg_green);
-    m_btn_cancel->SetBorderColor(wxColour(255, 46, 138));
+    m_btn_cancel->SetBorderColor(ESCALOP_ACCENT);
     m_btn_cancel->SetTextColor(text_color);
     m_btn_cancel->SetSize(wxSize(FromDIP(60), FromDIP(20)));
     m_btn_cancel->SetMinSize(wxSize(FromDIP(60), FromDIP(20)));

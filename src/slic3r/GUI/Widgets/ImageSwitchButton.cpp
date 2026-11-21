@@ -6,6 +6,7 @@
 #include "slic3r/GUI/I18N.hpp"
 #include <wx/dcclient.h>
 #include <wx/dcgraph.h>
+#include "../EscalopTheme.hpp" // Escaloplab: theme color
 
 BEGIN_EVENT_TABLE(ImageSwitchButton, StaticBox)
 
@@ -27,7 +28,7 @@ EVT_PAINT(FanSwitchButton::paintEvent)
 
 END_EVENT_TABLE()
 
-static const wxColour DEFAULT_HOVER_COL = wxColour(255, 46, 138);
+static const wxColour DEFAULT_HOVER_COL = ESCALOP_ACCENT;
 static const wxColour DEFAULT_PRESS_COL = wxColour(238, 238, 238);
 
 ImageSwitchButton::ImageSwitchButton(wxWindow *parent, ScalableBitmap &img_on, ScalableBitmap &img_off, long style)

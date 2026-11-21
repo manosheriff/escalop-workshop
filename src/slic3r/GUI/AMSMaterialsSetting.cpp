@@ -16,6 +16,7 @@
 #include "DeviceCore/DevExtruderSystem.h"
 #include "DeviceCore/DevFilaBlackList.h"
 #include "DeviceCore/DevFilaSystem.h"
+#include "EscalopTheme.hpp" // Escaloplab: theme color
 
 #define FILAMENT_MAX_TEMP       300
 #define FILAMENT_MIN_TEMP       120
@@ -145,7 +146,7 @@ void AMSMaterialsSetting::create_panel_normal(wxWindow* parent)
 
     // make the style the same with disable m_input_k_val, FIXME
     m_readonly_filament = new TextInput(parent, wxEmptyString, "", "", wxDefaultPosition, AMS_MATERIALS_SETTING_COMBOX_WIDTH, wxTE_CENTRE | wxTE_PROCESS_ENTER);
-    m_readonly_filament->SetBorderColor(StateColor(std::make_pair(0xDBDBDB, (int)StateColor::Focused), std::make_pair(0xFF2E8A, (int)StateColor::Hovered),
+    m_readonly_filament->SetBorderColor(StateColor(std::make_pair(0xDBDBDB, (int)StateColor::Focused), std::make_pair(ESCALOP_ACCENT, (int)StateColor::Hovered),
         std::make_pair(0xDBDBDB, (int)StateColor::Normal)));
     m_readonly_filament->SetFont(::Label::Body_14);
     m_readonly_filament->SetLabelColor(AMS_MATERIALS_SETTING_GREY800);

@@ -5,6 +5,7 @@
 #include <wx/dcgraph.h>
 #include "../GUI.hpp"
 #include "../GUI_App.hpp"
+#include "../EscalopTheme.hpp" // Escaloplab: theme color
 
 wxDEFINE_EVENT(wxCUSTOMEVT_SET_TEMP_FINISH, wxCommandEvent);
 
@@ -25,7 +26,7 @@ TempInput::TempInput()
 {
     hover  = false;
     radius = 0;
-    border_color = StateColor(std::make_pair(*wxWHITE, (int) StateColor::Disabled), std::make_pair(0xFF2E8A, (int) StateColor::Focused), std::make_pair(0xFF2E8A, (int) StateColor::Hovered),
+    border_color = StateColor(std::make_pair(*wxWHITE, (int) StateColor::Disabled), std::make_pair(ESCALOP_ACCENT, (int) StateColor::Focused), std::make_pair(ESCALOP_ACCENT, (int) StateColor::Hovered),
                  std::make_pair(*wxWHITE, (int) StateColor::Normal));
     background_color = StateColor(std::make_pair(*wxWHITE, (int) StateColor::Disabled), std::make_pair(*wxWHITE, (int) StateColor::Normal));
     SetFont(Label::Body_12);
@@ -427,8 +428,8 @@ void TempInput::render(wxDC &dc)
     if (warning_mode) {
         border_color = wxColour(255, 111, 0);
     } else {
-        border_color = StateColor(std::make_pair(*wxWHITE, (int) StateColor::Disabled), std::make_pair(0xFF2E8A, (int) StateColor::Focused),
-                                  std::make_pair(0xFF2E8A, (int) StateColor::Hovered), std::make_pair(*wxWHITE, (int) StateColor::Normal));
+        border_color = StateColor(std::make_pair(*wxWHITE, (int) StateColor::Disabled), std::make_pair(ESCALOP_ACCENT, (int) StateColor::Focused),
+                                  std::make_pair(ESCALOP_ACCENT, (int) StateColor::Hovered), std::make_pair(*wxWHITE, (int) StateColor::Normal));
     }
 
     dc.SetBrush(*wxTRANSPARENT_BRUSH);

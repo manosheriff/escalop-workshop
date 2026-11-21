@@ -13,6 +13,7 @@
 #include "Plater.hpp"
 #include "DeviceCore/DevExtruderSystem.h"
 #include "DeviceCore/DevManager.h"
+#include "EscalopTheme.hpp" // Escaloplab: theme color
 
 namespace Slic3r {
 namespace GUI {
@@ -122,7 +123,7 @@ HistoryWindow::HistoryWindow(wxWindow* parent, const std::vector<PACalibResult>&
     scroll_sizer->AddSpacer(FromDIP(15));
 
     m_extruder_switch_btn = new SwitchButton(scroll_window);
-    m_extruder_switch_btn->SetBackgroundColour(wxColour(255, 46, 138));
+    m_extruder_switch_btn->SetBackgroundColour(ESCALOP_ACCENT);
     m_extruder_switch_btn->SetMinSize(wxSize(FromDIP(120), FromDIP(24)));
     m_extruder_switch_btn->SetMaxSize(wxSize(FromDIP(120), FromDIP(24)));
     m_extruder_switch_btn->SetLabels(_L("Left Nozzle"), _L("Right Nozzle"));

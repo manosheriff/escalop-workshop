@@ -14,6 +14,7 @@
 #include <wx/stattext.h>
 #include <wx/button.h>
 
+#include "EscalopTheme.hpp" // Escaloplab: theme color
 #ifdef _WIN32
 #include <windows.h>
 #endif
@@ -686,7 +687,7 @@ void FilamentPickerDialog::OnButtonPaint(wxPaintEvent& event)
     }
 
     // Draw the green border
-    dc.SetPen(wxPen(wxColour("#FF2E8A"), 2));  // Green pen, 2px thick
+    dc.SetPen(wxPen(ESCALOP_ACCENT, 2));  // Green pen, 2px thick
     dc.SetBrush(*wxTRANSPARENT_BRUSH);
     dc.DrawRectangle(1, 1, COLOR_BTN_SIZE.GetWidth() - 1, COLOR_BTN_SIZE.GetHeight() - 1);
 }

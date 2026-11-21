@@ -3,6 +3,7 @@
 
 #include <wx/dcclient.h>
 #include <wx/dcgraph.h>
+#include "EscalopTheme.hpp" // Escaloplab: theme color
 
 BEGIN_EVENT_TABLE(TabButton, StaticBox)
 
@@ -14,7 +15,7 @@ EVT_PAINT(TabButton::paintEvent)
 
 END_EVENT_TABLE()
 
-static wxColour BORDER_HOVER_COL = wxColour(255, 46, 138);
+static wxColour BORDER_HOVER_COL = ESCALOP_ACCENT;
 
 const static wxColour TAB_BUTTON_BG    = wxColour("#FEFFFF");
 const static wxColour TAB_BUTTON_SEL   = wxColour("#FFD0E4"); // ORCA

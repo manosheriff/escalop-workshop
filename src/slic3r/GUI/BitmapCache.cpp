@@ -7,6 +7,8 @@
 
 #include <boost/nowide/cstdio.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/algorithm/string/replace.hpp>
+#include "EscalopTheme.hpp" // Escaloplab: theme color
 
 #ifdef __WXGTK2__
     // Broken alpha workaround
@@ -346,6 +348,17 @@ wxBitmap* BitmapCache::load_svg(const std::string &bitmap_name, unsigned target_
 
     if (strstr(bitmap_name.c_str(), "toggle_on") != NULL && dark_mode) // ORCA only replace color of toggle button
         replaces["#FF2E8A"] = "#C70F62";
+
+    // Escaloplab: icons follow the theme color (EscalopTheme); pink #FF2E8A / dark #C70F62 by default
+    if (const std::string acc = Escalop::accent_hex(); acc != "#FF2E8A") {
+        const std::string dark = Escalop::accent_dark_hex();
+        for (auto& [from, to] : replaces) {
+            boost::replace_all(to, "#FF2E8A", acc);
+            boost::replace_all(to, "#C70F62", dark);
+        }
+        if (!replaces.count("\"#FF2E8A\"")) replaces["\"#FF2E8A\""] = "\"" + acc + "\"";
+        if (!replaces.count("#FF2E8A")) replaces["#FF2E8A"] = dark_mode ? dark : acc;
+    }
 
     if (!new_color.empty())
         replaces["\"#FF2E8A\""] = "\"" + new_color + "\"";

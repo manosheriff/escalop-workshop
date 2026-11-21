@@ -3,6 +3,7 @@
 
 #include <wx/dcclient.h>
 #include <wx/dcgraph.h>
+#include "../EscalopTheme.hpp" // Escaloplab: theme color
 
 BEGIN_EVENT_TABLE(SideButton, wxWindow)
 EVT_LEFT_DOWN(SideButton::mouseDown)
@@ -29,7 +30,7 @@ SideButton::SideButton(wxWindow* parent, wxString text, wxString icon, long stly
     border_color.append(0x6B6B6B, StateColor::Disabled);
     border_color.append(wxColour(0, 137, 123), StateColor::Pressed);
     border_color.append(wxColour(255, 92, 163), StateColor::Hovered);
-    border_color.append(0xFF2E8A, StateColor::Normal);
+    border_color.append(ESCALOP_ACCENT, StateColor::Normal);
     border_color.setTakeFocusedAsHovered(false);
 
     text_color.append(0xACACAC, StateColor::Disabled);
@@ -40,7 +41,7 @@ SideButton::SideButton(wxWindow* parent, wxString text, wxString icon, long stly
     background_color.append(0x6B6B6B, StateColor::Disabled);
     background_color.append(wxColour(0, 137, 123), StateColor::Pressed);
     background_color.append(wxColour(255, 92, 163), StateColor::Hovered);
-    background_color.append(0xFF2E8A, StateColor::Normal);
+    background_color.append(ESCALOP_ACCENT, StateColor::Normal);
     background_color.setTakeFocusedAsHovered(false);
 
     SetBottomColour(wxColour("#3B4446"));

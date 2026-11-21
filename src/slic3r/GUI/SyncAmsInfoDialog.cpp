@@ -28,6 +28,7 @@
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevMapping.h"
 #include "DeviceCore/DevStorage.h"
+#include "EscalopTheme.hpp" // Escaloplab: theme color
 
 using namespace Slic3r;
 using namespace Slic3r::GUI;
@@ -1989,7 +1990,7 @@ void SyncAmsInfoDialog::Enable_Auto_Refill(bool enable)
 {
     if (!m_ams_backup_tip) { return; }
     if (enable) {
-        m_ams_backup_tip->SetForegroundColour(wxColour("#FF2E8A"));
+        m_ams_backup_tip->SetForegroundColour(ESCALOP_ACCENT);
     } else {
         m_ams_backup_tip->SetForegroundColour(wxColour(0x90, 0x90, 0x90));
     }

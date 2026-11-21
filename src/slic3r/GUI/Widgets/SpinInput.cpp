@@ -4,6 +4,7 @@
 #include "TextCtrl.h"
 
 #include <wx/dcgraph.h>
+#include "../EscalopTheme.hpp" // Escaloplab: theme color
 
 BEGIN_EVENT_TABLE(SpinInput, StaticBox)
 
@@ -26,7 +27,7 @@ SpinInput::SpinInput()
 {
     radius = 0;
     border_width     = 1;
-    border_color     = StateColor(std::make_pair(0xDBDBDB, (int) StateColor::Disabled), std::make_pair(0xFF2E8A, (int) StateColor::Hovered),
+    border_color     = StateColor(std::make_pair(0xDBDBDB, (int) StateColor::Disabled), std::make_pair(ESCALOP_ACCENT, (int) StateColor::Hovered),
                               std::make_pair(0xDBDBDB, (int) StateColor::Normal));
     background_color = StateColor(std::make_pair(0xF0F0F1, (int) StateColor::Disabled), std::make_pair(*wxWHITE, (int) StateColor::Normal));
 }

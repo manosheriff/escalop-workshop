@@ -12,9 +12,10 @@
 #include <wx/hyperlink.h>
 #include <wx/animate.h>
 #include <wx/dynarray.h>
+#include "../EscalopTheme.hpp" // Escaloplab: theme color
 
 
-#define AMS_CONTROL_BRAND_COLOUR wxColour(255, 46, 138)
+#define AMS_CONTROL_BRAND_COLOUR ESCALOP_ACCENT
 #define AMS_CONTROL_GRAY700 wxColour(107, 107, 107)
 #define AMS_CONTROL_GRAY800 wxColour(50, 58, 61)
 #define AMS_CONTROL_GRAY500 wxColour(172, 172, 172)

@@ -8,6 +8,7 @@
 #include "DeviceCore/DevConfig.h"
 #include "DeviceCore/DevExtruderSystem.h"
 #include "DeviceCore/DevNozzleSystem.h"
+#include "EscalopTheme.hpp" // Escaloplab: theme color
 
 static const wxColour STATIC_BOX_LINE_COL = wxColour(238, 238, 238);
 static const wxColour STATIC_TEXT_CAPTION_COL = wxColour(100, 100, 100);
@@ -18,7 +19,7 @@ namespace Slic3r { namespace GUI {
 static StateColor btn_bg_green(std::pair<wxColour, int>(wxColour(206, 206, 206), StateColor::Disabled),
                                std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed),
                                std::pair<wxColour, int>(wxColour(255, 92, 163), StateColor::Hovered),
-                               std::pair<wxColour, int>(wxColour(255, 46, 138), StateColor::Normal));
+                               std::pair<wxColour, int>(ESCALOP_ACCENT, StateColor::Normal));
 
 PrintOptionsDialog::PrintOptionsDialog(wxWindow* parent)
     : DPIDialog(parent, wxID_ANY, _L("Print Options"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX)

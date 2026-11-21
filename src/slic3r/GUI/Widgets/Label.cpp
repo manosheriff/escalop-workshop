@@ -5,6 +5,7 @@
 #include <wx/dcclient.h>
 #include <wx/settings.h>
 #include <boost/log/trivial.hpp>
+#include "../EscalopTheme.hpp" // Escaloplab: theme color
 #ifdef __linux__
 #include <fontconfig/fontconfig.h>
 #endif
@@ -329,7 +330,7 @@ void Label::SetWindowStyleFlag(long style)
     wxStaticText::SetWindowStyleFlag(style);
     if (style & LB_HYPERLINK) {
         this->m_color = GetForegroundColour();
-        static wxColor clr_url("#FF2E8A");
+        static wxColor clr_url(ESCALOP_ACCENT);
         SetFont(this->m_font.Underlined());
         SetForegroundColour(clr_url);
         SetCursor(wxCURSOR_HAND);

@@ -3,6 +3,7 @@
 
 #include <wx/dc.h>
 #include <wx/pen.h>
+#include "../EscalopTheme.hpp" // Escaloplab: theme color
 
 wxDEFINE_EVENT( EVT_STEP_CHANGING, wxCommandEvent );
 wxDEFINE_EVENT( EVT_STEP_CHANGED, wxCommandEvent );
@@ -23,7 +24,7 @@ StepCtrlBase::StepCtrlBase(wxWindow *      parent,
     , font_tip(Label::Body_14)
     , clr_bar(0xACACAC)
     , clr_step(0xACACAC)
-    , clr_text(std::make_pair(0xFF2E8A, (int) StateColor::Checked),
+    , clr_text(std::make_pair(ESCALOP_ACCENT, (int) StateColor::Checked),
             std::make_pair(0x6B6B6B, (int) StateColor::Normal))
     , clr_tip(0x828280)
 {
@@ -258,7 +259,7 @@ StepIndicator::StepIndicator(wxWindow *parent, wxWindowID id, const wxPoint &pos
     clr_bar = 0xE1E1E1;
     clr_step = StateColor(
             std::make_pair(0xACACAC, (int) StateColor::Disabled),
-            std::make_pair(0xFF2E8A, 0));
+            std::make_pair(ESCALOP_ACCENT, 0));
     clr_text = StateColor(
             std::make_pair(0xACACAC, (int) StateColor::Disabled),
             std::make_pair(0x323A3D, (int) StateColor::Checked),
@@ -368,7 +369,7 @@ FilamentStepIndicator::FilamentStepIndicator(wxWindow* parent, wxWindowID id, co
     clr_bar = 0xE1E1E1;
     clr_step = StateColor(
         std::make_pair(0xACACAC, (int)StateColor::Disabled),
-        std::make_pair(0xFF2E8A, 0));
+        std::make_pair(ESCALOP_ACCENT, 0));
     clr_text = StateColor(
         std::make_pair(0xACACAC, (int)StateColor::Disabled),
         std::make_pair(0x323A3D, (int)StateColor::Checked),
@@ -406,7 +407,7 @@ void FilamentStepIndicator::doRender(wxDC& dc)
     }
 
     dc.SetFont(::Label::Head_16);
-    dc.SetTextForeground(wxColour(255, 46, 138));
+    dc.SetTextForeground(ESCALOP_ACCENT);
     int circleX = 20;
     int circleY = 20;
     wxSize sz = dc.GetTextExtent(L"Loading");

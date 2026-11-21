@@ -46,12 +46,13 @@
 #include "slic3r/GUI/UpgradePanel.hpp"
 #include "slic3r/GUI/AmsWidgets.hpp"
 #include "Widgets/SideTools.hpp"
+#include "EscalopTheme.hpp" // Escaloplab: theme color
 
 #define AUFILE_GREY700 wxColour(107, 107, 107)
 #define AUFILE_GREY500 wxColour(158, 158, 158)
 #define AUFILE_GREY300 wxColour(238, 238, 238)
 #define AUFILE_GREY200 wxColour(248, 248, 248)
-#define AUFILE_BRAND wxColour(255, 46, 138)
+#define AUFILE_BRAND ESCALOP_ACCENT
 #define AUFILE_BRAND_TRANSPARENT wxColour("#FFEAF3") // ORCA color with %10 opacity
 //#define AUFILE_PICTURES_SIZE wxSize(FromDIP(300), FromDIP(300))
 //#define AUFILE_PICTURES_PANEL_SIZE wxSize(FromDIP(300), FromDIP(340))

@@ -11,6 +11,7 @@
 
 #include <wx/button.h>
 #include <wx/sizer.h>
+#include "EscalopTheme.hpp" // Escaloplab: theme color
 
 wxDEFINE_EVENT(wxCUSTOMEVT_NOTEBOOK_SEL_CHANGED, wxCommandEvent);
 
@@ -123,7 +124,7 @@ void ButtonsListCtrl::SetSelection(int sel)
     if (m_selection == sel)
         return;
     // BBS: change button color
-    wxColour selected_btn_bg("#FF2E8A");    // Gradient #FF2E8A
+    wxColour selected_btn_bg(ESCALOP_ACCENT);    // Gradient #FF2E8A
     if (m_selection >= 0) {
         StateColor bg_color = StateColor(
         std::pair{wxColour(107, 107, 107), (int) StateColor::Hovered},
@@ -138,8 +139,8 @@ void ButtonsListCtrl::SetSelection(int sel)
     m_selection = sel;
 
     StateColor bg_color = StateColor(
-        std::pair{wxColour(255, 46, 138), (int) StateColor::Hovered},
-        std::pair{wxColour(255, 46, 138), (int) StateColor::Normal});
+        std::pair{ESCALOP_ACCENT, (int) StateColor::Hovered},
+        std::pair{ESCALOP_ACCENT, (int) StateColor::Normal});
     m_pageButtons[m_selection]->SetBackgroundColor(bg_color);
 
     StateColor text_color = StateColor(
@@ -148,6 +149,15 @@ void ButtonsListCtrl::SetSelection(int sel)
     m_pageButtons[m_selection]->SetSelected(true);
     m_pageButtons[m_selection]->SetTextColor(text_color);
     
+    Refresh();
+}
+
+void ButtonsListCtrl::ShowPage(size_t n, bool show)
+{
+    if (n >= m_pageButtons.size())
+        return;
+    m_pageButtons[n]->Show(show);
+    Layout();
     Refresh();
 }
 

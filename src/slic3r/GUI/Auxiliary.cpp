@@ -28,6 +28,7 @@
 #include "GUI_ObjectList.hpp"
 #include "MainFrame.hpp"
 #include "Widgets/Label.hpp"
+#include "EscalopTheme.hpp" // Escaloplab: theme color
 
 namespace Slic3r { namespace GUI {
 
@@ -845,7 +846,7 @@ void AuxiliaryPanel::init_tabpanel()
     StateColor btn_bg_green(std::pair<wxColour, int>(wxColour(206, 206, 206), StateColor::Disabled),
                             std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed),
                             std::pair<wxColour, int>(wxColour(255, 92, 163), StateColor::Hovered),
-                            std::pair<wxColour, int>(wxColour(255, 46, 138), StateColor::Normal));
+                            std::pair<wxColour, int>(ESCALOP_ACCENT, StateColor::Normal));
     auto back_btn = new Button(this, _L("Return"), "assemble_return", wxBORDER_NONE | wxBU_LEFT | wxBU_EXACTFIT);
     back_btn->SetSize(wxSize(FromDIP(220), FromDIP(18)));
     back_btn->SetBackgroundColor(btn_bg_green);

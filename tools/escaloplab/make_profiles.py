@@ -28,7 +28,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "resources" / "profiles"
 VENDOR = "Escaloplab"
-VERSION = "01.00.03.00"
+VERSION = "01.00.04.00"
 
 # (model name, bed X, bed Y, height, drive)
 MODELS = [
@@ -139,8 +139,8 @@ def machine_common():
         "machine_pause_gcode": "M0",
         "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0\n",
         "layer_change_gcode": "",
-        # Send prints over Wi-Fi to the printer's ESP3D module (the address is entered once per printer)
-        "host_type": "esp3d",
+        # Send prints over Wi-Fi to the Escaloplab Wi-Fi module (OctoPrint-compatible upload API)
+        "host_type": "octoprint",  # the Escaloplab Wi-Fi module speaks the OctoPrint upload API
         "printer_settings_id": "",
         "default_print_profile": "",
         "machine_start_gcode": "",

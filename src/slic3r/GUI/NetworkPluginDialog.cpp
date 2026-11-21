@@ -11,6 +11,7 @@
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/collpane.h>
+#include "EscalopTheme.hpp" // Escaloplab: theme color
 
 namespace Slic3r {
 namespace GUI {
@@ -101,7 +102,7 @@ void NetworkPluginDownloadDialog::create_missing_plugin_ui()
     StateColor btn_bg_green(
         std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed),
         std::pair<wxColour, int>(wxColour(255, 92, 163), StateColor::Hovered),
-        std::pair<wxColour, int>(wxColour(255, 46, 138), StateColor::Normal));
+        std::pair<wxColour, int>(ESCALOP_ACCENT, StateColor::Normal));
 
     StateColor btn_bg_white(
         std::pair<wxColour, int>(wxColour(206, 206, 206), StateColor::Pressed),
@@ -161,7 +162,7 @@ void NetworkPluginDownloadDialog::create_update_available_ui(const std::string& 
     StateColor btn_bg_green(
         std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed),
         std::pair<wxColour, int>(wxColour(255, 92, 163), StateColor::Hovered),
-        std::pair<wxColour, int>(wxColour(255, 46, 138), StateColor::Normal));
+        std::pair<wxColour, int>(ESCALOP_ACCENT, StateColor::Normal));
 
     StateColor btn_bg_white(
         std::pair<wxColour, int>(wxColour(206, 206, 206), StateColor::Pressed),
@@ -327,7 +328,7 @@ NetworkPluginRestartDialog::NetworkPluginRestartDialog(wxWindow* parent)
     StateColor btn_bg_green(
         std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed),
         std::pair<wxColour, int>(wxColour(255, 92, 163), StateColor::Hovered),
-        std::pair<wxColour, int>(wxColour(255, 46, 138), StateColor::Normal));
+        std::pair<wxColour, int>(ESCALOP_ACCENT, StateColor::Normal));
 
     StateColor btn_bg_white(
         std::pair<wxColour, int>(wxColour(206, 206, 206), StateColor::Pressed),

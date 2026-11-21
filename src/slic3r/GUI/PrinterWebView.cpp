@@ -259,6 +259,8 @@ void PrinterWebView::SendAPIKey()
 
 void PrinterWebView::OnError(wxWebViewEvent &evt)
 {
+    if (m_on_load_error && evt.GetInt() != wxWEBVIEW_NAV_ERR_USER_CANCELLED)
+        m_on_load_error();
     auto e = "unknown error";
     switch (evt.GetInt()) {
       case wxWEBVIEW_NAV_ERR_CONNECTION:

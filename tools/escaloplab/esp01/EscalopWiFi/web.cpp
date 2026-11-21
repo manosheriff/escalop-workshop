@@ -79,16 +79,36 @@ void sendError(int code, const String& message)
 }
 
 // An 8.3 name from the SD card listing, safe to put in a G-code line
-bool validSdName(const String& name)
+// One 8.3 part of an SD card path: NAME or NAME.EXT
+bool valid83(const String& part, bool needExtension)
 {
-    const int dot = name.indexOf('.');
-    if (dot < 1 || dot > 8 || name.length() - dot - 1 < 1 || name.length() - dot - 1 > 3) return false;
-    for (size_t i = 0; i < name.length(); ++i) {
-        const char c = name[i];
+    const int dot = part.indexOf('.');
+    const int nameLen = dot < 0 ? int(part.length()) : dot;
+    const int extLen  = dot < 0 ? 0 : int(part.length()) - dot - 1;
+    if (nameLen < 1 || nameLen > 8 || extLen > 3 || (dot >= 0 && extLen < 1) || (needExtension && extLen == 0)) return false;
+    for (size_t i = 0; i < part.length(); ++i) {
+        const char c = part[i];
         if (int(i) == dot) continue;
-        if (!((c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '~' || c == '-')) return false;
+        if (!((c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '~' || c == '-' || c == '!' || c == '#' ||
+              c == '$' || c == '%' || c == '&' || c == '\'' || c == '(' || c == ')' || c == '@' || c == '^' || c == '{' ||
+              c == '}'))
+            return false;
     }
     return true;
+}
+
+// A file's 8.3 path from the SD card listing (FOLDER/SUB/FILE.GCO), safe to put in a G-code line
+bool validSdName(const String& path)
+{
+    if (path.length() == 0 || path.length() > 80) return false;
+    int start = path[0] == '/' ? 1 : 0;
+    while (true) {
+        const int slash = path.indexOf('/', start);
+        const String part = slash < 0 ? path.substring(start) : path.substring(start, slash);
+        if (!valid83(part, slash < 0)) return false;
+        if (slash < 0) return true;
+        start = slash + 1;
+    }
 }
 
 bool isGcodeName(String name)

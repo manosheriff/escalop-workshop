@@ -7,6 +7,7 @@
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "I18N.hpp"
+#include "EscalopTheme.hpp" // Escaloplab: theme color
 
 wxDEFINE_EVENT(EVT_WIPE_TOWER_CHART_CHANGED, wxCommandEvent);
 
@@ -53,7 +54,7 @@ void Chart::draw() {
     }
     
     // draw draggable buttons
-    dc.SetBrush(StateColor::darkModeColorFor(wxColour("#FF2E8A"))); // orca color for draggable circles
+    dc.SetBrush(StateColor::darkModeColorFor(ESCALOP_ACCENT)); // orca color for draggable circles
     dc.SetPen(wxPen(StateColor::darkModeColorFor(wxColour("#363636")), 1));
     for (auto& button : m_buttons)
         //dc.DrawRectangle(math_to_screen(button.get_pos())-wxPoint(side/2.,side/2.), wxSize(side,side));

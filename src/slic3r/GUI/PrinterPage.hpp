@@ -1,53 +1,85 @@
 #pragma once
 
+#include <memory>
+#include <string>
+#include <vector>
+
 #include <wx/panel.h>
 
 class Button;
 class Label;
+class TextInput;
 class wxSimplebook;
+class wxBoxSizer;
+class wxScrolledWindow;
 
 namespace Slic3r {
+
+class Bonjour;
+
 namespace GUI {
 
 class FirmwarePanel;
 class PrinterWebView;
 
-// Escaloplab: the "Printer" tab, Orca's "Device" tab for printers that aren't Bambu Lab's. It has two sections:
-// updating the printer's firmware over USB (FirmwarePanel) and controlling a printer on the network through its
-// own web page (Orca's PrinterWebView: OctoPrint, Klipper, PrusaLink...).
+// Escaloplab: the "Printer" tab (Orca's "Device" tab for printers that aren't Bambu Lab's). Shows the printer's own
+// web page (the Escaloplab Wi-Fi module: status, control, files, firmware updates). Without a printer address, or when
+// the printer can't be reached, it looks for Escaloplab printers on the network and lets the user pick one by its
+// serial number, or type the address shown on the printer. Printers without the Wi-Fi module can get their firmware
+// over USB (FirmwarePanel), from a link on that page.
 class PrinterPage : public wxPanel
 {
 public:
-    enum class Section { Firmware, Control };
-
-    // Without firmware (G-code viewer) the page is only the printer's web page
+    // Without firmware (G-code viewer) there's no USB update link
     PrinterPage(wxWindow* parent, bool with_firmware);
+    ~PrinterPage() override;
 
     PrinterWebView* web_view() const { return m_web_view; }
     FirmwarePanel*  firmware() const { return m_firmware; }
 
-    void show_section(Section section);
-    // A printer address was set: show its web page, unless the user is updating the firmware right now
-    void on_printer_url_loaded();
+    // The printer's address changed (MainFrame's EVT_LOAD_PRINTER_URL): show its page, or look for printers
+    void load(const wxString& url, const wxString& apikey);
     // When the tab is opened
     void on_activate();
     void msw_rescale();
     void on_sys_color_changed();
 
 private:
-    void apply_colors();
-    void update_hint();
+    struct Found
+    {
+        std::string serial; // "00003"
+        std::string host;   // IP address
+    };
+    enum class Section { Find, Web, Usb };
 
-    Section         m_section      = Section::Control;
-    wxPanel*        m_header       = nullptr;
-    Label*          m_title        = nullptr;
-    Label*          m_intro        = nullptr;
-    Label*          m_hint         = nullptr;
-    Button*         m_firmware_btn = nullptr;
-    Button*         m_control_btn  = nullptr;
-    wxSimplebook*   m_book         = nullptr;
-    FirmwarePanel*  m_firmware     = nullptr;
-    PrinterWebView* m_web_view     = nullptr;
+    void show(Section section);
+    void build_find_page();
+    void refresh_find_page();
+    void start_search();
+    void connect(const std::string& host);
+    void on_page_error();
+
+    std::shared_ptr<int> m_alive = std::make_shared<int>(0);
+    Section              m_section = Section::Find;
+    wxSimplebook*        m_book     = nullptr;
+    PrinterWebView*      m_web_view = nullptr;
+    FirmwarePanel*       m_firmware = nullptr;
+    wxPanel*             m_usb_page = nullptr;
+
+    // The "find your printer" page
+    wxScrolledWindow* m_find      = nullptr;
+    Label*            m_title     = nullptr;
+    Label*            m_status    = nullptr;
+    wxBoxSizer*       m_list      = nullptr;
+    wxPanel*          m_manual    = nullptr;
+    TextInput*        m_ip_input  = nullptr;
+    Button*           m_again_btn = nullptr;
+
+    std::shared_ptr<Bonjour> m_bonjour;
+    bool                     m_searching = false;
+    std::vector<Found>       m_found;
+    wxString                 m_problem;  // why the page is shown ("can't reach ...")
+    wxString                 m_url;      // the printer's page, as last loaded
 };
 
 } // namespace GUI

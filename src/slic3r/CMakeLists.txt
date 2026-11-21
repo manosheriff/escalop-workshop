@@ -395,6 +395,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/PrinterCloudAuthDialog.hpp
     GUI/Printer/PrinterFileSystem.cpp
     GUI/Printer/PrinterFileSystem.h
+    GUI/EscalopTheme.cpp
+    GUI/EscalopTheme.hpp
     GUI/PrinterPage.cpp
     GUI/PrinterPage.hpp
     GUI/PrinterWebView.cpp

@@ -34,6 +34,7 @@
 #include "libslic3r/Semver.hpp"
 #include "libslic3r/Utils.hpp"
 #include "slic3r/Utils/Http.hpp"
+#include "EscalopTheme.hpp" // Escaloplab: theme color
 
 namespace Slic3r {
 namespace GUI {
@@ -42,7 +43,7 @@ namespace {
 
 const char* const FIRMWARE_TAG_PREFIX = "firmware-v";
 const char* const VENDOR              = "Escaloplab";
-const wxColour    PINK(255, 46, 138); // #FF2E8A, Escaloplab's neon pink
+const wxColour    PINK = ESCALOP_ACCENT; // the theme color (Escaloplab pink by default)
 
 wxColour themed(const char* light) { return StateColor::darkModeColorFor(wxColour(light)); }
 

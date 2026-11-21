@@ -19,6 +19,7 @@
 #include "MainFrame.hpp"
 #include "libslic3r_version.h"
 #include "Widgets/HyperLink.hpp" // ORCA
+#include "EscalopTheme.hpp" // Escaloplab: theme color
 
 #define NAME_OPTION_COMBOBOX_SIZE wxSize(FromDIP(200), FromDIP(24))
 #define FILAMENT_PRESET_COMBOBOX_SIZE wxSize(FromDIP(300), FromDIP(24))
@@ -34,7 +35,7 @@
 #define STATIC_TEXT_COLOUR wxColour("#363636")
 #define PRINTER_LIST_COLOUR wxColour("#EEEEEE")
 #define FILAMENT_OPTION_COLOUR wxColour("#D9D9D9")
-#define SELECT_ALL_OPTION_COLOUR wxColour("#FF2E8A")
+#define SELECT_ALL_OPTION_COLOUR ESCALOP_ACCENT
 #define DEFAULT_PROMPT_TEXT_COLOUR wxColour("#ACACAC")
 
 namespace Slic3r {

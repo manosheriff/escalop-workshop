@@ -79,6 +79,7 @@
 #include <gtk/gtk.h>
 #endif // __WXGTK__
 #include <slic3r/GUI/CreatePresetsDialog.hpp>
+#include "EscalopTheme.hpp" // Escaloplab: theme color
 
 
 namespace Slic3r {
@@ -496,6 +497,8 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
     //BBS
     Bind(EVT_SELECT_TAB, [this](wxCommandEvent&evt) {
         TabPosition pos = (TabPosition)evt.GetInt();
+        if (pos == tpHome)
+            pos = tp3DEditor; // Escaloplab: the Home tab is hidden
         m_tabpanel->SetSelection(pos);
     });
 
@@ -1325,6 +1328,7 @@ void MainFrame::init_tabpanel() {
             m_webview->load_url(url);
         });
         m_tabpanel->AddPage(m_webview, "", "tab_home_active", "tab_home_active", false);
+        m_tabpanel->GetBtnsListCtrl()->ShowPage(tpHome, false); // Escaloplab: no Home tab (Orca's start page)
         m_param_panel = new ParamsPanel(m_tabpanel, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBK_LEFT | wxTAB_TRAVERSAL);
     }
 
@@ -1349,8 +1353,7 @@ void MainFrame::init_tabpanel() {
         wxString url = evt.GetString();
         wxString key = evt.GetAPIkey();
         //select_tab(MainFrame::tpMonitor);
-        m_printer_view->load_url(url, key);
-        m_printer_page->on_printer_url_loaded();
+        m_printer_page->load(url, key); // the printer's page, or finding the printer
     });
     m_printer_page->Hide();
 
@@ -2358,7 +2361,7 @@ void MainFrame::update_side_button_style()
     StateColor m_btn_bg_enable = StateColor(
         std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed),
         std::pair<wxColour, int>(wxColour(48, 221, 112), StateColor::Hovered),
-        std::pair<wxColour, int>(wxColour(255, 46, 138), StateColor::Normal)
+        std::pair<wxColour, int>(ESCALOP_ACCENT, StateColor::Normal)
     );
 
     // m_publish_btn->SetMinSize(wxSize(FromDIP(125), FromDIP(24)));
@@ -3127,6 +3130,11 @@ void MainFrame::init_menubar_as_editor()
                        m_plater->is_sidebar_enabled();
             },
             this);
+
+        // Escaloplab: the theme color (also the circle in the top bar on Windows)
+        viewMenu->AppendSeparator();
+        append_menu_item(viewMenu, wxID_ANY, _L("Theme color..."), _L("Choose the app's color"),
+            [this](wxCommandEvent&) { Escalop::choose_accent(this); }, "", this);
 
         viewMenu->AppendSeparator();
         append_menu_check_item(viewMenu, wxID_ANY, _L("Show &Labels") + "\t" + ctrl + "E", _L("Show object labels in 3D scene."),
@@ -3941,6 +3949,8 @@ void MainFrame::jump_to_multipage()
 //BBS GUI refactor: remove unused layout new/dlg
 void MainFrame::select_tab(size_t tab/* = size_t(-1)*/)
 {
+    if (tab == size_t(tpHome))
+        tab = tp3DEditor; // Escaloplab: the Home tab is hidden
     //bool tabpanel_was_hidden = false;
 
     // Controls on page are created on active page of active tab now.

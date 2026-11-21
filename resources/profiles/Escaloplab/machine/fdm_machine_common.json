@@ -113,7 +113,7 @@
     "single_extruder_multi_material": "1",
     "change_filament_gcode": "M600",
     "machine_pause_gcode": "M0",
-    "host_type": "esp3d",
+    "host_type": "octoprint",
     "printer_settings_id": "",
     "default_print_profile": "",
     "machine_start_gcode": "",

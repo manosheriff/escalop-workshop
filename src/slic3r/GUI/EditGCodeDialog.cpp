@@ -22,6 +22,7 @@
 #include "Widgets/DialogButtons.hpp"
 
 #include "libslic3r/Preset.hpp"
+#include "EscalopTheme.hpp" // Escaloplab: theme color
 
 #define BTN_GAP  FromDIP(20)
 #define BTN_SIZE wxSize(FromDIP(58), FromDIP(24))
@@ -444,7 +445,7 @@ static void make_bold(wxString& str)
 static void highlight(wxString& str)
 {
 #if defined(SUPPORTS_MARKUP) && !defined(__APPLE__)
-    str = format_wxstr("<span bgcolor=\"#FF2E8A\">%1%</span>", str);
+    str = format_wxstr("<span bgcolor=\"" + ESCALOP_ACCENT_HEX + "\">%1%</span>", str);
 #endif
 }
 

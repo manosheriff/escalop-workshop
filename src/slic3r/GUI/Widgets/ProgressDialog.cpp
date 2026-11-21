@@ -21,6 +21,7 @@
 #include "ProgressDialog.hpp"
 #include "wx/evtloop.h"
 #include "Label.hpp"
+#include "../EscalopTheme.hpp" // Escaloplab: theme color
 
 // ----------------------------------------------------------------------------
 // constants
@@ -355,7 +356,7 @@ bool ProgressDialog::Create(const wxString &title, const wxString &message, int 
     //     wxStaticBitmap *m_bitmatAbort = new wxStaticBitmap(m_btnAbort, wxID_ANY, wxBitmap(icon_path, wxBITMAP_TYPE_ANY), wxDefaultPosition, wxSize(52, 24), 0);
     //     wxStaticText *textAbort = new wxStaticText(m_btnAbort, wxID_ANY, _T("Cancel"), wxPoint(5, 3), wxSize(42, 19));
     //     textAbort->SetBa
-    //     ckgroundColour(wxColor(255, 46, 138));
+    //     ckgroundColour(ESCALOP_ACCENT);
     //     textAbort->SetForegroundColour(DESIGN_RESOUTION_DEF_BK_COLOR);
     //
     //     textAbort->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent &event) {

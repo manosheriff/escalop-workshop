@@ -10,11 +10,12 @@
 
 #include "DeviceCore/DevFilaSystem.h"
 #include "DeviceCore/DevManager.h"
+#include "EscalopTheme.hpp" // Escaloplab: theme color
 
 namespace Slic3r {
 namespace GUI {
 
-static const wxColour TEXT_NORMAL_CLR = wxColour(255, 46, 138);
+static const wxColour TEXT_NORMAL_CLR = ESCALOP_ACCENT;
 static const wxColour TEXT_FAILED_CLR = wxColour(255, 111, 0);
 
 static const std::unordered_map<wxString, wxString> ACCESSORY_DISPLAY_STR = {

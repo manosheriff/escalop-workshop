@@ -19,6 +19,7 @@
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "DownloadProgressDialog.hpp"
 
+#include "EscalopTheme.hpp" // Escaloplab: theme color
 #ifdef __WINDOWS__
 #ifdef _MSW_DARK_MODE
 #include "dark_mode.hpp"
@@ -180,7 +181,7 @@ private:
         dc.SetBackground(wxBrush(GetParent() ? GetParent()->GetBackgroundColour() : *wxWHITE));
         dc.Clear();
  
-        wxColour textCol = StateColor::darkModeColorFor(m_hovered ? "#FF5CA3" : "#363636");
+        wxColour textCol = StateColor::darkModeColorFor(m_hovered ? ESCALOP_ACCENT_HOVER : wxColour("#363636"));
  
         dc.SetTextForeground(textCol);
         dc.SetFont(m_font);

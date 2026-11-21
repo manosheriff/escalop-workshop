@@ -697,10 +697,11 @@ static void escalop_install_pending_update()
     si.cb          = sizeof(si);
     si.dwFlags     = STARTF_USESHOWWINDOW;
     si.wShowWindow = SW_HIDE;
-    if (::CreateProcessW(nullptr, cmd.data(), nullptr, nullptr, FALSE,
-                         CREATE_NO_WINDOW | DETACHED_PROCESS | CREATE_BREAKAWAY_FROM_JOB, nullptr, nullptr, &si, &pi) ||
-        ::CreateProcessW(nullptr, cmd.data(), nullptr, nullptr, FALSE, CREATE_NO_WINDOW | DETACHED_PROCESS, nullptr, nullptr,
-                         &si, &pi)) {
+    // CREATE_NO_WINDOW gives the script a hidden console that the tools it runs (ping, tasklist) share. Not
+    // DETACHED_PROCESS: without a console of its own, each of those tools opened a visible window every few seconds.
+    if (::CreateProcessW(nullptr, cmd.data(), nullptr, nullptr, FALSE, CREATE_NO_WINDOW | CREATE_BREAKAWAY_FROM_JOB, nullptr,
+                         nullptr, &si, &pi) ||
+        ::CreateProcessW(nullptr, cmd.data(), nullptr, nullptr, FALSE, CREATE_NO_WINDOW, nullptr, nullptr, &si, &pi)) {
         ::CloseHandle(pi.hThread);
         ::CloseHandle(pi.hProcess);
     } else

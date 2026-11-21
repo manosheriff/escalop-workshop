@@ -11,8 +11,7 @@ talk to each other. The ESP-01 code (`EscalopWiFi.ino`, next to this file) and M
 - The ESP-01 can pull the Mega's RESET low (GPIO2, through a level shifter). Marlin never needs to do anything for that.
 - Because USB shares the port, a computer connected over USB sees everything Marlin sends, including the lines below.
   That is harmless. Customers are told not to print over USB and Wi-Fi at the same time.
-- When the ESP-01 receives control bytes (below 0x20, other than `
-`, ``, `	`) it assumes the bootloader is talking
+- When the ESP-01 receives control bytes (below 0x20, other than line feed, carriage return and tab) it assumes the bootloader is talking
   to a computer over USB (a USB firmware update) and sends nothing for 20 s. So Marlin must never print such bytes on
   Serial0 (it normally doesn't).
 
@@ -73,7 +72,8 @@ Marlin prints these lines on Serial0 (with `SERIAL_ECHOLN`/`SERIAL_ECHOPGM` styl
 INFO fields:
 - `fw` = Marlin's `ESCALOPLAB_FW_VERSION` (e.g. `1.7.0`).
 - `sd` = 1 when an SD card is inserted **and** mounted.
-- `printing` = 1 while an SD print is running or paused (or a host print is in progress, if Marlin can tell).
+- `printing` = 1 while an SD print is running or paused, or a USB host print once the host started the print
+  timer (M75); Marlin can't see other host prints.
 - `busy` = 1 when any heater target is above 0, the hotend is above 50 °C or the bed above 45 °C, or motion is
   queued/running. Firmware updates are only offered when `printing=0 busy=0`.
 - `boot` = 1 only on the unsolicited line at start-up.
@@ -106,7 +106,7 @@ INFO fields:
 1. The ESP-01 checks GitHub once a day (and on `//ESC:CHECK`). If there is a newer `firmware-vX.Y.Z` release, it
    downloads and verifies it first, then sends `M9104 X.Y.Z` (only when `printing=0 busy=0`).
    On `//ESC:CHECK` with nothing new it sends `M9108 UPTODATE`; without internet `M9108 NOINTERNET`.
-2. Marlin shows: `New firmware X.Y.Z` / `available. It installs` / `automatically over` / `Wi-Fi.` with **Update** / **Later**.
+2. Marlin shows: `New firmware X.Y.Z` / `is available.` / `Installs over Wi-Fi.` with **Update** / **Later** (20 columns).
 3. **Update** → Marlin sends `//ESC:UPDATE` and shows "Updating over Wi-Fi - don't turn off the printer".
    The ESP-01 sends `M9105 CHECK 100`, then `M9105 INSTALL 0`, then resets the board and installs.
 4. The new Marlin starts and sends `//ESC:INFO ... boot=1`; the ESP-01 compares the version and sends `M9106 OK X.Y.Z`
@@ -174,9 +174,10 @@ file to the ESP-01, which installs it exactly like a Wi-Fi update.
    line from the ESP-01:
    - `#READY` → go on.  `#NO <reason>` → show "Wi-Fi module not ready" and stop. Nothing in 10 s → show
      "No Wi-Fi module found" and stop.
-3. Marlin sends the file's raw bytes in blocks of **1024 bytes** (the last block is shorter). After each block it waits
-   up to 5 s for `#OK` (next block) or `#BAD` (stop; show "Transfer error, try again"). Marlin shows the progress.
-4. After the last block Marlin waits up to 15 s for:
+3. Marlin sends the file's raw bytes in blocks of **1024 bytes** (the last block is shorter). After **every** block,
+   the last one included, it waits up to 5 s for `#OK` (next block) or `#BAD` (stop; show "Transfer error, try
+   again"). Marlin shows the progress.
+4. After the `#OK` for the last block Marlin waits up to 15 s for:
    - `#VALID <bytes>` → show "Installing firmware - don't turn off the printer" and wait. The ESP-01 resets the board
      within 2 s and installs; afterwards it sends `M9106` like a Wi-Fi update.
    - `#INVALID <reason>` → show "This .hex file is not valid firmware".

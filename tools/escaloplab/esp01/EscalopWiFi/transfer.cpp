@@ -227,7 +227,7 @@ bool receiveSdFirmware(uint32_t bytes, String& error)
             return false;
         }
         received += n;
-        if (received % 1024 == 0 && received < bytes) Serial.print("#OK\n");
+        if (received % 1024 == 0 || received == bytes) Serial.print("#OK\n"); // after every block, the last one too
     }
     if (!hex.finish()) {
         Serial.print("#INVALID HEX\n");

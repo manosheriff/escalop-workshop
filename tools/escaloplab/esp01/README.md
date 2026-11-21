@@ -17,39 +17,41 @@ The ESP-01 inside the v80 gives the printer:
 How it talks to Marlin: [PROTOCOL.md](PROTOCOL.md) (Marlin 1.7.0 or newer). The code is the Arduino sketch in
 `EscalopWiFi/`.
 
-## Parts
+## Parts (as built and tested on the first v80)
 
 | Part | Notes |
 |---|---|
 | ESP-01 or ESP-01S | 1 MB flash (all current ones) |
-| AMS1117-3.3 regulator module | 5 V → 3.3 V. The Mega's 3.3 V pin is far too weak (the ESP takes up to 300 mA) |
-| 100 µF capacitor | across the ESP's 3.3 V and GND, close to it |
-| 4-channel logic level converter (BSS138, "I2C-safe bi-directional") | 2 channels used |
-| 1 kΩ and 2 kΩ resistors | Mega TX → ESP RX divider (2.2 kΩ is fine instead of 2 kΩ) |
-| 3 × 10 kΩ resistors | pull-ups for EN, RST and GPIO0 (the ESP-01S already has EN and RST pull-ups) |
+| 3.3 V regulator: KA78R33 (or an AMS1117-3.3 module) | 5 V → 3.3 V. The Mega's 3.3 V pin is far too weak (the ESP takes up to 300 mA). KA78R33 pins: 1 in, 2 out, 3 GND, 4 (on/off) to GND |
+| 100–330 µF capacitor | across the ESP's VCC and GND, right at the ESP |
+| 2 × 1N4148 diodes | ESP TX → D0 (keeps USB working) and ESP GPIO0 → RESET |
+| 1 kΩ and 2 kΩ resistors | Mega TX → ESP RX divider (5 V → 3.3 V) |
 
 ## Wiring in the printer (RAMPS 1.4 on the Mega 2560)
 
 The ESP-01 uses the Mega's **Serial0** (the USB port's serial line), because the Mega's bootloader only listens there,
-and that's how the module installs firmware. RAMPS **AUX-1** has everything: `5V`, `GND`, `D0` (RX0), `D1` (TX0).
+and that's how the module installs firmware. RAMPS **AUX-1** has `5V`, `GND`, `D0` (RX0), `D1` (TX0).
 
 ```
-RAMPS AUX-1 5V  ──┬── AMS1117 IN          AMS1117 OUT (3.3 V) ──┬── ESP VCC   (+100 µF to GND)
-                  └── level converter HV                         ├── ESP EN    (through 10 kΩ)
-RAMPS AUX-1 GND ───── AMS1117 GND, converter GND, ESP GND        ├── ESP RST   (through 10 kΩ)
-                                                                 ├── ESP GPIO0 (through 10 kΩ)
-                                                                 └── level converter LV
-
-ESP TX    ── converter LV1 ··· HV1 ── AUX-1 D0 (RX0)
-ESP GPIO2 ── converter LV2 ··· HV2 ── Mega RESET
+AUX-1 5V   ── KA78R33 pin 1
+AUX-1 GND  ── KA78R33 pins 3 + 4, ESP GND
+KA78R33 pin 2 (3.3 V) ── ESP VCC + EN          (capacitor + to VCC, stripe to GND, at the ESP)
+ESP TX     ──|◄── AUX-1 D0 (RX0)               1N4148, black band toward the ESP
+ESP GPIO0  ──|◄── Mega RESET                   1N4148, black band toward the ESP
 AUX-1 D1 (TX0) ── 1 kΩ ──┬── ESP RX
                          └── 2 kΩ ── GND
+ESP GPIO2, ESP RST: not connected
 ```
 
-- **Mega RESET:** easiest is the RAMPS reset button: solder to the leg that measures 5 V to GND (not the GND leg).
-  The level converter keeps it at 5 V; the ESP pulls it low only to install firmware.
-- The level converter on the TX line lets the USB port still talk to the board (USB printing, and USB firmware
-  updates from Escalop Workshop keep working). The module goes quiet by itself while a USB update runs.
+- **Mega RESET:** the RAMPS reset button, on the leg that measures 5 V to GND (not the GND leg).
+- **Use GPIO0, not GPIO2, for RESET:** the ESP's boot ROM pulses GPIO2 at every start, which restarted the printer
+  whenever the module restarted. GPIO0 stays quiet (and the RESET pull-up keeps it high, as the ESP needs at start).
+  (One side effect: if someone holds the printer's reset button exactly while the ESP starts, the ESP starts in
+  programming mode; power-cycle to fix. Reflashing by hand later: GPIO0 to GND also holds the Mega in reset, harmlessly.)
+- The diode on TX lets the USB port still talk to the board (USB printing, and USB firmware updates from Escalop
+  Workshop keep working). The module goes quiet by itself while a USB update runs.
+- At power-on the ESP's start-up noise used to leave the Mega's bootloader waiting (blank screen); the module now
+  restarts the board and tells the bootloader to start Marlin.
 - **Power:** the ESP takes ~80 mA on average. If the Mega's own 5 V regulator gets hot (12 V in), feed 5 V from a small
   12 V → 5 V buck converter instead.
 - Keep the wires short (under ~15 cm); the link runs at 1 Mbaud.

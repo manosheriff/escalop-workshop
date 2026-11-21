@@ -198,9 +198,10 @@ void restartForTasks(uint32_t tasks)
 
 void setup()
 {
-    // First of all: never hold the printer's board in reset
-    pinMode(RESET_PIN, OUTPUT);
+    // First of all: never pull the printer's reset line. High before it becomes an output: the other way round
+    // gives a microsecond low pulse, which is enough to restart the Mega.
     digitalWrite(RESET_PIN, HIGH);
+    pinMode(RESET_PIN, OUTPUT);
 
     settingsLoad();
     Marlin::begin();
@@ -266,6 +267,12 @@ void loop()
     if (!Marlin::protocol()) g_attached = false;
 
     if (!Web::uploading()) Updates::loop();
+
+    // The KILL button on the printer's screen halts Marlin ("Printer halted, please reset"): restart it
+    if (Marlin::takeKillButton()) {
+        logf("marlin: KILL button pressed, restarting the printer");
+        Flasher::resetBoard();
+    }
 
     // Internet tasks: once a day, or "Check for updates" (printer menu or web page). Never during an upload or an
     // install (Updates::loop() returns only when an install is over).

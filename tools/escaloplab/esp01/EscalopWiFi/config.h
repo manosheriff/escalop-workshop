@@ -5,7 +5,7 @@
 // Escalop v80 Wi-Fi module (ESP-01). See ../PROTOCOL.md for how it talks to the printer's Marlin firmware.
 
 // This module's own software version. A GitHub release tagged wifi-vX.Y.Z with a newer X.Y.Z updates it.
-#define WIFI_VERSION "1.0.8"
+#define WIFI_VERSION "1.0.10"
 
 #define PRINTER_MODEL  "v80"
 #define HOTSPOT_PREFIX "Escalop-v80-"  // + serial number, e.g. Escalop-v80-00123
@@ -17,8 +17,9 @@
 #define CHECKIN_URL        "https://escaloplab.com/api/printer-units/checkin"
 #define USER_AGENT         "EscalopWiFi/" WIFI_VERSION
 
-// Wiring (see ../README.md): ESP-01 TX/RX <-> Mega Serial0 (RAMPS AUX-1 D0/D1), GPIO2 -> level shifter -> Mega RESET
-constexpr uint8_t  RESET_PIN       = 2;        // low = the printer's board is held in reset
+// Wiring (see ../README.md): ESP-01 TX/RX <-> Mega Serial0 (RAMPS AUX-1 D0/D1), GPIO0 -> 1N4148 -> Mega RESET.
+// Not GPIO2: the ESP's boot ROM pulses GPIO2 at every start, which restarted the printer with the module.
+constexpr uint8_t  RESET_PIN       = 0;        // low = the printer's board is held in reset
 constexpr uint32_t MARLIN_BAUD     = 1000000;  // Marlin's BAUDRATE
 constexpr uint32_t BOOTLOADER_BAUD = 115200;   // the Mega 2560's STK500v2 bootloader
 

@@ -8,7 +8,7 @@ talk to each other. The ESP-01 code (`EscalopWiFi.ino`, next to this file) and M
 - ESP-01 TX/RX are wired to the Mega 2560's **Serial0** (RAMPS AUX-1 pins D0 = RX0, D1 = TX0), the same port as USB.
   Serial0 is required: the Mega's bootloader only listens there, and the ESP-01 installs new Marlin firmware through it.
 - Speed **1 000 000 baud**, 8N1, for Marlin and the ESP-01. (The bootloader itself runs at 115 200; only the ESP-01 uses that, while flashing.)
-- The ESP-01 can pull the Mega's RESET low (GPIO2, through a level shifter). Marlin never needs to do anything for that.
+- The ESP-01 can pull the Mega's RESET low (GPIO0, through a level shifter). Marlin never needs to do anything for that.
 - Because USB shares the port, a computer connected over USB sees everything Marlin sends, including the lines below.
   That is harmless. Customers are told not to print over USB and Wi-Fi at the same time.
 - When the ESP-01 receives control bytes (below 0x20, other than line feed, carriage return and tab) it assumes the bootloader is talking

@@ -59,6 +59,10 @@ bool drain(uint32_t timeoutMs = 4000);
 // Lists the SD card's root (M20 L)
 bool listFiles(std::vector<FileEntry>& files, uint32_t timeoutMs = 6000);
 
+// True once, about a second after Marlin stopped because someone pressed the KILL button (not for other kills,
+// such as heater faults, whose message must stay on the screen)
+bool takeKillButton();
+
 // While paused, poll() leaves Serial alone (raw transfers and flashing read it themselves)
 void pause();
 void resume();

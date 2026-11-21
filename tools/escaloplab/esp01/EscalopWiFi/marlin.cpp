@@ -19,6 +19,7 @@ uint32_t   g_lastBoot  = 0;
 bool       g_bootWait  = false; // "start" seen, waiting to know whether an INFO follows
 uint32_t   g_infoCount = 0;
 bool       g_paused    = false;
+uint32_t   g_killButtonAt = 0;  // when Marlin reported the KILL button (0 = no)
 uint32_t   g_quietUntil = 0;     // a computer is updating the board over USB: say nothing until then
 
 // Link speed: 1000000 (Escaloplab Marlin 1.7+) or 250000 (older firmware, before the Wi-Fi module). Found by
@@ -202,9 +203,19 @@ void handleLine(const char* s)
         g_protocol = false;
         return;
     }
-    if (startsWith(s, "Error:")) logf("marlin: %s", s);
+    if (startsWith(s, "Error:")) {
+        logf("marlin: %s", s);
+        if (strstr(s, "KILL caused by KILL button")) g_killButtonAt = millis();
+    }
 }
 } // namespace
+
+bool takeKillButton()
+{
+    if (!g_killButtonAt || elapsed(g_killButtonAt) < SECONDS) return false;
+    g_killButtonAt = 0;
+    return true;
+}
 
 bool quiet() { return g_quietUntil && int32_t(millis() - g_quietUntil) < 0; }
 

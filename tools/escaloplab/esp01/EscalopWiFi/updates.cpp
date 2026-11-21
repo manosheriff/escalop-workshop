@@ -6,10 +6,12 @@
 #include "config.h"
 #include "flasher.h"
 #include "marlin.h"
-#include "net.h"
+#include <ESP8266WiFi.h>
+#include <vector>
 #include "settings.h"
 #include "stage.h"
 #include "util.h"
+#include "web.h"
 
 namespace Updates {
 
@@ -17,7 +19,6 @@ namespace {
 State    g_state    = State::Idle;
 int      g_progress = 0;
 String   g_error;
-uint32_t g_nextCheck   = 0;     // 0 = not scheduled yet (waits for Wi-Fi)
 bool     g_checkWanted = false; // checkNow() asked for one
 bool     g_checkFromPrinter = false;
 bool     g_offered     = false; // M9104 sent since Marlin last started
@@ -50,9 +51,13 @@ bool stagedNewer()
            compareVersions(settings.stagedVersion, installed) > 0;
 }
 
+// Lines for the printer that come before it answered (start-up checks) wait until it has
+std::vector<String> g_deferred;
+
 void tellPrinter(const String& line)
 {
     if (Marlin::protocol()) Marlin::send(line);
+    else if (!line.startsWith("M9105") && g_deferred.size() < 4) g_deferred.push_back(line);
 }
 
 bool downloadFirmware(const String& url, const String& version, bool fromPrinter)
@@ -111,6 +116,8 @@ void updateSelf(const String& url, const String& version)
         [](uint32_t, int32_t) { Marlin::poll(); }, err);
     if (ok && Update.end(true)) {
         logf("update: module updated, restarting");
+        setBootTasks(1 | 2); // check in with the new version, then look for printer firmware
+        markPlannedRestart();
         delay(300);
         ESP.restart(); // the printer keeps running; only Wi-Fi blinks off for a few seconds
     }
@@ -124,7 +131,7 @@ void runCheck(bool fromPrinter)
     g_error = "";
     String version, url, err;
 
-    if (!Net::connected()) {
+    if (WiFi.status() != WL_CONNECTED) {
         if (fromPrinter) tellPrinter("M9108 NOINTERNET");
         g_state = State::Idle;
         return;
@@ -196,7 +203,12 @@ void runInstall()
     bool   ok = false;
     Marlin::pause();
     for (int attempt = 0; attempt < 3 && !ok; ++attempt)
-        ok = Flasher::install(settings.stagedSize, [](int p) { g_progress = p; }, err);
+        ok = Flasher::install(settings.stagedSize,
+                              [](int p) {
+                                  g_progress = p;
+                                  Web::serviceDuringInstall(); // the web page shows the percentage meanwhile
+                              },
+                              err);
     Marlin::resume();
     Marlin::relink();
 
@@ -239,12 +251,9 @@ void loop()
     if (g_state == State::Failed && settings.pendingInstall && settings.stagedValid && !Marlin::alive() && due(g_retryAt))
         runInstall();
 
-    if (Net::connected() && g_nextCheck == 0) g_nextCheck = millis() + FIRST_CHECK_AFTER;
-    if (g_checkWanted || (g_nextCheck && due(g_nextCheck) && Net::connected())) {
-        const bool fromPrinter = g_checkWanted && g_checkFromPrinter;
-        g_checkWanted = false;
-        g_nextCheck   = millis() + UPDATE_CHECK_EVERY;
-        runCheck(fromPrinter);
+    if (Marlin::protocol() && !g_deferred.empty()) {
+        for (const String& line : g_deferred) Marlin::send(line);
+        g_deferred.clear();
     }
 
     if (g_later && elapsed(g_laterAt) > OFFER_AGAIN_AFTER) {
@@ -254,6 +263,7 @@ void loop()
     if (stagedNewer() && Marlin::protocol() && !g_offered && !g_later && g_state != State::Installing && printerIdle()) {
         Marlin::send(String("M9104 ") + settings.stagedVersion);
         g_offered = true;
+        g_error   = ""; // an earlier hiccup doesn't matter any more
         logf("update: offered firmware %s", settings.stagedVersion);
     }
     if (g_state == State::Ready && !stagedNewer()) g_state = State::Idle;
@@ -263,6 +273,23 @@ void checkNow(bool fromPrinter)
 {
     g_checkWanted      = true;
     g_checkFromPrinter = fromPrinter;
+}
+
+bool takeCheckRequest(bool& fromPrinter)
+{
+    if (!g_checkWanted) return false;
+    g_checkWanted = false;
+    fromPrinter   = g_checkFromPrinter;
+    return true;
+}
+
+void checkAtStartup(bool fromPrinter)
+{
+    runCheck(fromPrinter);
+    if (fromPrinter) {
+        g_offered = false; // offer what was found as soon as the printer answers
+        g_later   = false;
+    }
 }
 
 bool install(String& why)

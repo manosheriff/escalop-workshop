@@ -220,7 +220,7 @@ void onBoot(std::function<void(bool)> handler) { g_bootHandler = handler; }
 
 void begin()
 {
-    Serial.setRxBufferSize(1024);
+    Serial.setRxBufferSize(512);
     Serial.begin(MARLIN_BAUD);
     Serial.setDebugOutput(false);
     g_baudSince = millis();

@@ -8,6 +8,16 @@
 void logf_P(PGM_P fmt, ...);
 #define logf(fmt, ...) logf_P(PSTR(fmt), ##__VA_ARGS__) // the format text stays in flash
 String logText();
+// At start-up: logs what happened before a crash restart. True when the crash was during a secure connection.
+bool crashMemoryBegin();
+// Marks a secure connection as open (remembered across a crash restart)
+void setInTls(bool on);
+// Call right before ESP.restart(): the next start doesn't report a problem
+void markPlannedRestart();
+
+// Work to do right after the next restart (kept in RTC memory across a software restart)
+void     setBootTasks(uint32_t tasks);
+uint32_t takeBootTasks(); // and clears them
 
 // Text <-> hex of its bytes ("Hi" <-> "4869"). Empty text is "-" (PROTOCOL.md section 2).
 String toHex(const String& text);

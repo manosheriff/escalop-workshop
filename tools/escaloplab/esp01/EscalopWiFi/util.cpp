@@ -1,15 +1,37 @@
 #include "util.h"
 
 #include <stdarg.h>
+#include <user_interface.h> // rst_info, REASON_*
 
 namespace {
-constexpr size_t LOG_SIZE = 1536;
+constexpr size_t LOG_SIZE = 1024;
 char   g_log[LOG_SIZE];
 size_t g_log_head = 0;   // next write position
 bool   g_log_full = false;
 
+// The newest log text also goes to RTC memory, which survives a crash restart (not a power cut), so the log
+// after a crash can show what happened just before it
+struct Crumbs
+{
+    uint32_t magic;
+    uint32_t inTls;      // a secure connection was open
+    char     tail[248];  // the newest log text, oldest first
+};
+constexpr uint32_t CRUMBS_MAGIC = 0x45534352; // "ESCR"
+constexpr uint32_t PLANNED      = 2;          // inTls value: the module restarted itself on purpose
+Crumbs             g_crumbs;
+
+// RTC user memory blocks 0-31 (128 bytes) hold the bootloader's "install the update" command (eboot): never
+// write there, or updates silently don't install
+constexpr uint32_t CRUMBS_BLOCK = 32;
+static_assert(CRUMBS_BLOCK * 4 + sizeof(Crumbs) <= 512, "RTC user memory is 512 bytes");
+
+void crumbsSave() { ESP.rtcUserMemoryWrite(CRUMBS_BLOCK, reinterpret_cast<uint32_t*>(&g_crumbs), sizeof(g_crumbs)); }
+
 void logPut(char c)
 {
+    memmove(g_crumbs.tail, g_crumbs.tail + 1, sizeof(g_crumbs.tail) - 1);
+    g_crumbs.tail[sizeof(g_crumbs.tail) - 1] = c;
     g_log[g_log_head++] = c;
     if (g_log_head == LOG_SIZE) {
         g_log_head = 0;
@@ -38,6 +60,71 @@ void logf_P(PGM_P fmt, ...)
     for (const char* p = stamp; *p; ++p) logPut(*p);
     for (const char* p = line; *p; ++p) logPut(*p);
     logPut('\n');
+    crumbsSave();
+}
+
+bool crashMemoryBegin()
+{
+    Crumbs before;
+    const bool valid =
+        ESP.rtcUserMemoryRead(CRUMBS_BLOCK, reinterpret_cast<uint32_t*>(&before), sizeof(before)) && before.magic == CRUMBS_MAGIC;
+    const uint32_t reason  = ESP.getResetInfoPtr()->reason;
+    // Any restart except power-on and the reset pin: also software restarts, which is what a failed allocation
+    // (abort) or a panic looks like
+    const bool     crashed = reason == REASON_EXCEPTION_RST || reason == REASON_SOFT_WDT_RST || reason == REASON_WDT_RST ||
+                         (reason == REASON_SOFT_RESTART && !(valid && before.inTls == PLANNED));
+    memset(&g_crumbs, 0, sizeof(g_crumbs));
+    g_crumbs.magic = CRUMBS_MAGIC;
+    if (valid && crashed) {
+        logf("restarted after a problem: %s", ESP.getResetInfo().c_str());
+        before.tail[sizeof(before.tail) - 1] = 0;
+        const char* text = before.tail;
+        while (*text == 0 && text < before.tail + sizeof(before.tail) - 1) ++text; // the buffer fills from the end
+        logf("last log lines before it:");
+        String line;
+        for (const char* p = text; *p; ++p) {
+            if (*p == '\n') {
+                if (line.length()) logf("  | %s", line.c_str());
+                line = "";
+            } else {
+                line += *p;
+            }
+        }
+    }
+    const bool inTls = valid && crashed && before.inTls;
+    crumbsSave();
+    return inTls;
+}
+
+namespace {
+constexpr uint32_t TASKS_BLOCK = 100; // after the crash memory (blocks 32-95)
+constexpr uint32_t TASKS_MAGIC = 0x45535441; // "ESTA"
+} // namespace
+
+void setBootTasks(uint32_t tasks)
+{
+    uint32_t data[2] = {TASKS_MAGIC, tasks};
+    ESP.rtcUserMemoryWrite(TASKS_BLOCK, data, sizeof(data));
+}
+
+uint32_t takeBootTasks()
+{
+    uint32_t data[2] = {0, 0};
+    ESP.rtcUserMemoryRead(TASKS_BLOCK, data, sizeof(data));
+    setBootTasks(0);
+    return data[0] == TASKS_MAGIC ? data[1] : 0;
+}
+
+void setInTls(bool on)
+{
+    g_crumbs.inTls = on;
+    crumbsSave();
+}
+
+void markPlannedRestart()
+{
+    g_crumbs.inTls = PLANNED;
+    crumbsSave();
 }
 
 String logText()

@@ -12,8 +12,10 @@
 // CPU frequency "160 MHz", library "ArduinoJson" (7.x).
 
 #include <ESP8266WiFi.h>
+#include <user_interface.h> // reset reasons
 
 #include "cloud.h"
+#include "flasher.h"
 #include "config.h"
 #include "marlin.h"
 #include "net.h"
@@ -36,7 +38,10 @@ bool     g_attached     = false; // the printer's link is set up (state sent, au
 bool     g_scanForPrinter = false;
 uint32_t g_lastInfoAsk  = 0;
 int      g_unanswered   = 0;     // M9100 without an INFO (older firmware)
-uint32_t g_nextCheckin  = 0;
+uint32_t g_dailyAt      = 0;     // when the daily internet tasks are due
+
+// Internet work, done right after a (re)start while memory is free (see runInternetTasks)
+enum : uint32_t { TASK_CHECKIN = 1, TASK_UPDATES = 2, TASK_FROM_PRINTER = 4 };
 
 void sendSerial()
 {
@@ -120,7 +125,7 @@ void onNetEvent(Net::Event e)
         return;
     case Net::Event::Connected:
         Web::setJoinResult("ok");
-        g_nextCheckin = millis() + 20 * SECONDS;
+        Cloud::startClock();
         break;
     case Net::Event::Disconnected:
         Web::setJoinResult("fail");
@@ -136,17 +141,50 @@ void checkin()
     String serial, error;
     if (!Cloud::checkin(Marlin::info().fw, serial, error)) {
         logf("checkin: %s", error.c_str());
-        g_nextCheckin = millis() + 30 * MINUTES;
         return;
     }
-    g_nextCheckin = millis() + UPDATE_CHECK_EVERY;
     if (serial != settings.serial) {
         logf("checkin: serial number %s", serial.c_str());
         strlcpy(settings.serial, serial.c_str(), sizeof(settings.serial));
-        settingsSave();
-        Net::namesChanged();
-        sendSerial();
+        settingsSave(); // the hotspot and network names follow when Net starts
     }
+}
+
+// HTTPS needs ~25 KB, more than is free once the web server, mDNS and the rest run. So the check-in and the update
+// check run right after a start, before those start: at power-on, once a day, and when someone asks for an update
+// check (the module restarts for it; the printer isn't affected, only Wi-Fi is away for ~30 s).
+void runInternetTasks(uint32_t tasks)
+{
+    WiFi.persistent(false);
+    WiFi.mode(WIFI_STA);
+    WiFi.hostname(Net::hostName());
+    WiFi.begin(settings.ssid, settings.pass);
+    const uint32_t start = millis();
+    while (WiFi.status() != WL_CONNECTED && elapsed(start) < 20 * SECONDS) {
+        Marlin::poll();
+        delay(10);
+    }
+    if (WiFi.status() != WL_CONNECTED) {
+        logf("start-up tasks: no Wi-Fi");
+        if (tasks & TASK_FROM_PRINTER) Updates::checkAtStartup(true); // answers "no internet"
+        return;
+    }
+    Cloud::startClock();
+    logf("start-up tasks (heap %lu)", (unsigned long)ESP.getFreeHeap());
+    // The printer's firmware version, for the check-in and the update check
+    for (int i = 0; i < 3 && !Marlin::info().fw.length(); ++i) Marlin::requestInfo(2000);
+    if (tasks & TASK_CHECKIN) checkin();
+    if (tasks & TASK_UPDATES) Updates::checkAtStartup(tasks & TASK_FROM_PRINTER);
+}
+
+// Restarts to run internet tasks (not in the middle of an upload or a firmware install)
+void restartForTasks(uint32_t tasks)
+{
+    logf("restarting for internet tasks (%lu)", (unsigned long)tasks);
+    setBootTasks(tasks);
+    markPlannedRestart();
+    delay(200);
+    ESP.restart();
 }
 
 } // namespace
@@ -159,7 +197,15 @@ void setup()
 
     settingsLoad();
     Marlin::begin();
-    logf("Escaloplab v80 Wi-Fi %s starting", WIFI_VERSION);
+    const uint32_t bootReason = ESP.getResetInfoPtr()->reason;
+    const bool     powerOn    = bootReason == REASON_DEFAULT_RST || bootReason == REASON_EXT_SYS_RST;
+    const bool     woke       = powerOn && Flasher::wakePrinter();
+    const bool crashedInTls = crashMemoryBegin(); // before anything is logged: logging overwrites the crash memory
+    logf("Escaloplab v80 Wi-Fi %s starting (%s)", WIFI_VERSION, ESP.getResetReason().c_str());
+    if (woke) logf("marlin: the printer's bootloader was waiting; started the firmware");
+    Cloud::begin(crashedInTls);
+    uint32_t tasks = takeBootTasks();
+    if (powerOn) tasks |= TASK_CHECKIN | TASK_UPDATES;
 
     Marlin::onEsc([](const String& cmd, const String& args) {
         if (g_requests.size() < 8) g_requests.push_back({cmd, args});
@@ -175,6 +221,9 @@ void setup()
     });
 
     g_lastInfoAsk = millis() - 8 * SECONDS; // first M9100 after 2 s
+
+    if (tasks && settings.ssid[0]) runInternetTasks(tasks);
+    g_dailyAt = millis() + UPDATE_CHECK_EVERY;
 
     Net::onEvent(onNetEvent);
     Net::begin();
@@ -209,7 +258,13 @@ void loop()
     if (Marlin::protocol() && !g_attached) attachPrinter(); // this module started while the printer was running
     if (!Marlin::protocol()) g_attached = false;
 
-    if (Net::connected() && g_nextCheckin && int32_t(millis() - g_nextCheckin) >= 0 && !Web::uploading()) checkin();
-
     if (!Web::uploading()) Updates::loop();
+
+    // Internet tasks: once a day, or "Check for updates" (printer menu or web page). Never during an upload or an
+    // install (Updates::loop() returns only when an install is over).
+    if (!Web::uploading() && Net::connected()) {
+        bool fromPrinter = false;
+        if (Updates::takeCheckRequest(fromPrinter)) restartForTasks(TASK_UPDATES | (fromPrinter ? TASK_FROM_PRINTER : 0));
+        if (int32_t(millis() - g_dailyAt) >= 0) restartForTasks(TASK_CHECKIN | TASK_UPDATES);
+    }
 }

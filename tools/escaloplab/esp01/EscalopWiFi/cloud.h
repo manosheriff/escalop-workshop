@@ -8,6 +8,12 @@
 
 namespace Cloud {
 
+// At start-up: after a crash during a secure connection, pauses the internet a while (no restart loops)
+void begin(bool crashedInTls);
+
+// When Wi-Fi connects: starts setting the clock from time servers (once)
+void startClock();
+
 // Sets the clock from the internet (certificates need the date). True once the time is known.
 bool ensureTime();
 

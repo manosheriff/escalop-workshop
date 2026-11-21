@@ -11,8 +11,12 @@ enum class State { Idle, Checking, Downloading, Ready, Installing, Failed };
 void begin();
 void loop();
 
-// "Check for updates" from the printer's menu (fromPrinter: answer with M9108/M9104) or the web page
+// "Check for updates" from the printer's menu (fromPrinter: answer with M9108/M9104) or the web page.
+// The check itself runs after a restart (checkAtStartup), where there is memory for HTTPS.
 void checkNow(bool fromPrinter);
+bool takeCheckRequest(bool& fromPrinter);
+// GitHub check (and download / own update) right after a start, Wi-Fi already connected
+void checkAtStartup(bool fromPrinter);
 // The user accepted the offer (printer screen or web page). False with the reason when it can't start now.
 bool install(String& why);
 // The user pressed "Later" on the printer

@@ -183,7 +183,7 @@ function render(){const p=st.printer,u=st.update;
  if(u.state==='checking')m='Checking for updates...';else if(u.state==='downloading')m='Downloading new firmware... '+u.progress+'%';
  else if(u.state==='installing')m='Installing firmware '+u.progress+'%. Don\'t turn the printer off.';
  else if(u.available)m='New firmware '+u.available+' is ready. It installs in about a minute; the printer restarts.';
- if(u.error)m+=' ('+u.error+')';$('upd').textContent=m;
+ if(u.error&&(u.state==='failed'||!u.available))m+=' ('+u.error+')';$('upd').textContent=m;
  $('updBarBox').classList.toggle('hidden',!(u.state==='downloading'||u.state==='installing'));$('updBar').style.width=u.progress+'%';
  $('inst').classList.toggle('hidden',!u.available||u.state==='installing');$('inst').disabled=p.printing||p.busy;
  const w=st.wifi;$('wifi').innerHTML='Connected to <b>'+esc(w.ssid)+'</b> &middot; '+esc(w.ip)+' &middot; signal '+w.rssi+' dBm';
@@ -197,7 +197,7 @@ async function files(){try{const r=await(await fetch('/api/files')).json();const
  b[1].onclick=()=>{if(confirm('Delete '+(f.long||f.name)+'?'))post('/api/job',{action:'delete',name:f.name}).then(files).catch(e=>alert(e.message))};ul.appendChild(li)})}catch(e){}}
 document.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>{if(b.dataset.q&&!confirm(b.dataset.q))return;post('/api/control',{action:b.dataset.a}).then(refresh).catch(e=>alert(e.message))});
 $('reload').onclick=files;
-$('chk').onclick=()=>post('/api/update/check').then(()=>setTimeout(refresh,1500));
+$('chk').onclick=()=>post('/api/update/check').then(()=>{$('upd').textContent='Checking. The Wi-Fi module restarts for this; the page is back in about 30 seconds.'});
 $('inst').onclick=()=>{if(confirm('Install the new printer firmware now? The printer restarts.'))post('/api/update/install').then(refresh).catch(e=>alert(e.message))};
 $('forget').onclick=()=>{if(confirm('Forget this Wi-Fi? The printer turns its setup hotspot on.'))post('/api/wifi/forget')};
 $('upBtn').onclick=()=>{const f=$('file').files[0];if(!f)return;const fd=new FormData();fd.append('print',$('startNow').checked?'true':'false');fd.append('file',f,f.name);

@@ -11,6 +11,9 @@ void begin();
 void loop();
 bool uploading();
 
+// While printer firmware is installed (Serial belongs to the bootloader): serves the status page only
+void serviceDuringInstall();
+
 // The outcome of a Wi-Fi connection attempt ("ok", "badpw", "fail"); kept when the setup page started it
 void setJoinResult(const char* result);
 

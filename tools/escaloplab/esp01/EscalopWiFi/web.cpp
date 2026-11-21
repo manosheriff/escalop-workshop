@@ -33,6 +33,16 @@ uint32_t g_restartAt = 0;
 uint32_t g_lastScan  = 0;
 String   g_lastFile; // what we last started, for the status page
 bool     g_moduleUpdateOk = false;
+bool     g_installing     = false; // printer firmware being installed: only status requests are served
+
+// Requests that would talk to the printer or change things wait while firmware is installed
+bool installingRefuse()
+{
+    if (!g_installing) return false;
+    server.sendHeader("Cache-Control", "no-store");
+    server.send(503, "text/plain", "Printer firmware is being installed. Try again in a minute.");
+    return true;
+}
 
 bool due(uint32_t at) { return at && int32_t(millis() - at) >= 0; }
 
@@ -116,6 +126,7 @@ void handleNotFound()
 
 void handleScan()
 {
+    if (installingRefuse()) return;
     if (!Net::scanning() && (Net::networks().empty() || elapsed(g_lastScan) > 15 * SECONDS)) {
         Net::scan();
         g_lastScan = millis();
@@ -134,6 +145,7 @@ void handleScan()
 
 void handleSetup()
 {
+    if (installingRefuse()) return;
     const String ssid = server.arg("ssid"), pass = server.arg("pass");
     if (ssid.length() == 0 || ssid.length() > 32 || pass.length() > 64 || (pass.length() > 0 && pass.length() < 8))
         return sendError(400, "Check the network name and password (8 to 64 characters).");
@@ -191,6 +203,7 @@ void handleStatus()
     m["version"] = WIFI_VERSION;
     m["serial"]  = settings.serial;
     m["heap"]    = ESP.getFreeHeap();
+    m["uptime"]  = millis() / 1000;
 
     JsonObject u   = doc["update"].to<JsonObject>();
     u["state"]     = Updates::stateName();
@@ -202,6 +215,7 @@ void handleStatus()
 
 void handleFiles()
 {
+    if (installingRefuse()) return;
     if (!homeNetworkOnly()) return;
     JsonDocument doc;
     JsonArray    list = doc["files"].to<JsonArray>();
@@ -225,6 +239,7 @@ void handleFiles()
 
 void handleJob()
 {
+    if (installingRefuse()) return;
     if (!homeNetworkOnly()) return;
     const String action = server.arg("action");
     String       name   = server.arg("name");
@@ -246,6 +261,7 @@ void handleJob()
 
 void handleControl()
 {
+    if (installingRefuse()) return;
     if (!homeNetworkOnly()) return;
     const String a = server.arg("action");
     if (a == "pause") Marlin::send("M25");
@@ -262,6 +278,7 @@ void handleControl()
 
 void handleUpdateCheck()
 {
+    if (installingRefuse()) return;
     if (!homeNetworkOnly()) return;
     Updates::checkNow(false);
     sendError(200, "ok");
@@ -269,6 +286,7 @@ void handleUpdateCheck()
 
 void handleUpdateInstall()
 {
+    if (installingRefuse()) return;
     if (!homeNetworkOnly()) return;
     String why;
     if (!Updates::install(why)) return sendError(409, why);
@@ -277,6 +295,7 @@ void handleUpdateInstall()
 
 void handleForget()
 {
+    if (installingRefuse()) return;
     if (!homeNetworkOnly()) return;
     g_forgetAt = millis() + 500;
     sendError(200, "ok");
@@ -306,7 +325,7 @@ void handleUploadChunk()
     String      err;
     switch (up.status) {
     case UPLOAD_FILE_START: {
-        g_uploadError = "";
+        g_uploadError = g_installing ? "Printer firmware is being installed. Try again in a minute." : "";
         g_uploadLong  = up.filename;
         g_uploadName  = sdNameFor(up.filename);
         g_uploadStart = millis();
@@ -390,7 +409,7 @@ void handleModulePage()
 void handleModuleChunk()
 {
     HTTPUpload& up = server.upload();
-    if (fromHotspot()) return;
+    if (fromHotspot() || g_installing) return;
     if (up.status == UPLOAD_FILE_START) {
         g_moduleUpdateOk = false;
         settings.stagedValid = 0; // the update uses the staging space
@@ -407,6 +426,7 @@ void handleModuleChunk()
 
 void handleModuleDone()
 {
+    if (installingRefuse()) return;
     if (!homeNetworkOnly()) return;
     if (!g_moduleUpdateOk) return sendError(500, "Not installed: " + Update.getErrorString());
     logf("web: module software installed by hand");
@@ -456,10 +476,20 @@ void loop()
         g_forgetAt = 0;
         Net::forget();
     }
-    if (due(g_restartAt)) ESP.restart();
+    if (due(g_restartAt)) {
+        markPlannedRestart();
+        ESP.restart();
+    }
 }
 
 bool uploading() { return g_upload.active(); }
+
+void serviceDuringInstall()
+{
+    g_installing = true;
+    server.handleClient();
+    g_installing = false;
+}
 
 void setJoinResult(const char* result)
 {

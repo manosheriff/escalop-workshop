@@ -196,6 +196,24 @@ void resetBoard()
     delay(10);
 }
 
+bool wakePrinter()
+{
+    // At power-on the ESP's start-up noise reaches the Mega's bootloader, which then waits for a programmer
+    // forever (blank screen until someone presses reset). Restart the board (reset wire), then tell the bootloader
+    // to start the firmware (works even without the reset wire).
+    resetBoard();
+    std::unique_ptr<uint8_t[]> answer(new uint8_t[ANSWER_SIZE]);
+    g_answer = answer.get();
+    setSpeed(BOOTLOADER_BAUD);
+    bool           talked = false;
+    const uint32_t start  = millis();
+    while (!talked && elapsed(start) < 1500) talked = signOn();
+    if (talked) leave();
+    g_answer = nullptr;
+    setSpeed(MARLIN_BAUD);
+    return talked;
+}
+
 bool install(uint32_t size, const std::function<void(int)>& progress, String& error)
 {
     if (size == 0 || size > AVR_APP_SIZE) {

@@ -15,4 +15,7 @@ bool install(uint32_t size, const std::function<void(int percent)>& progress, St
 // Pulses the board's RESET line (Marlin restarts)
 void resetBoard();
 
+// At power-on: restarts the board and starts its firmware if the bootloader got stuck. True if it answered.
+bool wakePrinter();
+
 } // namespace Flasher

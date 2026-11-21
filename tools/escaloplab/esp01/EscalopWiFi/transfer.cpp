@@ -45,9 +45,10 @@ String waitHashLine(uint32_t timeoutMs)
 
 bool SdUpload::begin(uint32_t sizeHint, const String& name, String& error)
 {
-    m_fill  = 0;
-    m_total = 0;
-    m_name  = name;
+    m_fill   = 0;
+    m_total  = 0;
+    m_name   = name;
+    m_packet = 512;
     if (!m_buf) m_buf = static_cast<uint8_t*>(malloc(512));
     if (!m_buf) {
         error = "Out of memory";
@@ -74,38 +75,69 @@ bool SdUpload::begin(uint32_t sizeHint, const String& name, String& error)
     return false;
 }
 
-bool SdUpload::sendPacket(const uint8_t* data, uint16_t len, String& error)
+// One packet: 1 = written, 0 = Marlin asks to send it again, -1 = the transfer is over (error set)
+int SdUpload::sendPacketOnce(const uint8_t* data, uint16_t len, String& error)
 {
     const uint8_t header[2] = {uint8_t(len & 0xFF), uint8_t(len >> 8)};
     uint16_t      crc       = crc16Update(0xFFFF, header, 2);
     if (len != 0xFFFF) crc = crc16Update(crc, data, len);
     const uint8_t tail[2] = {uint8_t(crc & 0xFF), uint8_t(crc >> 8)};
 
-    for (int attempt = 0; attempt <= 5; ++attempt) {
-        Serial.write(header, 2);
-        if (len != 0xFFFF && len > 0) Serial.write(data, len);
-        Serial.write(tail, 2);
-        const String reply = waitHashLine(len == 0 ? 15000 : 5000);
-        if (reply == "#A" || reply.startsWith("#D")) {
-            if (reply.startsWith("#D")) {
-                const uint32_t total = strtoul(reply.c_str() + 2, nullptr, 10);
-                if (total != m_total) {
-                    error = "The file on the SD card is incomplete";
-                    logf("upload: Marlin wrote %lu of %lu bytes", (unsigned long)total, (unsigned long)m_total);
-                    return false;
-                }
-            }
-            return true;
+    Serial.write(header, 2);
+    if (len != 0xFFFF && len > 0) Serial.write(data, len);
+    Serial.write(tail, 2);
+    const String reply = waitHashLine(len == 0 ? 15000 : 5000);
+    if (reply == "#A") return 1;
+    if (reply.startsWith("#D")) {
+        const uint32_t total = strtoul(reply.c_str() + 2, nullptr, 10);
+        if (total != m_total) {
+            error = "The file on the SD card is incomplete";
+            logf("upload: Marlin wrote %lu of %lu bytes", (unsigned long)total, (unsigned long)m_total);
+            return -1;
         }
-        if (reply == "#R") continue; // damaged on the way: send it again
-        error = reply.startsWith("#X SDERR") ? "The SD card couldn't be written"
-              : reply.length()              ? "The printer stopped the transfer (" + reply + ")"
-                                            : "The printer stopped answering";
-        logf("upload: failed: %s", reply.c_str());
-        return false;
+        return 1;
+    }
+    if (reply == "#R") return 0; // damaged on the way
+    error = reply.startsWith("#X SDERR") ? "The SD card couldn't be written"
+          : reply.length()              ? "The printer stopped the transfer (" + reply + ")"
+                                        : "The printer stopped answering";
+    logf("upload: failed: %s", reply.c_str());
+    return -1;
+}
+
+bool SdUpload::sendPacket(const uint8_t* data, uint16_t len, String& error)
+{
+    for (int attempt = 0; attempt <= 5; ++attempt) {
+        const int r = sendPacketOnce(data, len, error);
+        if (r != 0) return r > 0;
     }
     error = "Too many transfer errors";
     return false;
+}
+
+// File data in packets of m_packet bytes. When Marlin asks for a packet again, packets get smaller: long bursts at
+// 1 Mbaud can lose bytes on some boards; the size that works is kept for the rest of the file.
+bool SdUpload::sendData(const uint8_t* data, size_t len, String& error)
+{
+    int failures = 0;
+    while (len > 0) {
+        const uint16_t n = uint16_t(std::min<size_t>(len, m_packet));
+        const int      r = sendPacketOnce(data, n, error);
+        if (r < 0) return false;
+        if (r == 0) {
+            if (m_packet > 16) {
+                m_packet /= 2;
+                logf("upload: resend asked, packets now %u bytes", (unsigned) m_packet);
+            } else if (++failures > 5) {
+                error = "Too many transfer errors";
+                return false;
+            }
+            continue;
+        }
+        data += n;
+        len -= n;
+    }
+    return true;
 }
 
 bool SdUpload::write(const uint8_t* data, size_t len, String& error)
@@ -122,7 +154,7 @@ bool SdUpload::write(const uint8_t* data, size_t len, String& error)
         len -= n;
         if (m_fill == 512) {
             m_total += m_fill;
-            if (!sendPacket(m_buf, uint16_t(m_fill), error)) {
+            if (!sendData(m_buf, m_fill, error)) {
                 end();
                 return false;
             }
@@ -140,7 +172,7 @@ bool SdUpload::finish(String& error)
     }
     if (m_fill > 0) {
         m_total += m_fill;
-        if (!sendPacket(m_buf, uint16_t(m_fill), error)) {
+        if (!sendData(m_buf, m_fill, error)) {
             end();
             return false;
         }

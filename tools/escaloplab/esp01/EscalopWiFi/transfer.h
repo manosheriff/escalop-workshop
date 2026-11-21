@@ -18,12 +18,15 @@ public:
     uint32_t sent() const { return m_total; }
 
 private:
+    int  sendPacketOnce(const uint8_t* data, uint16_t len, String& error);
     bool sendPacket(const uint8_t* data, uint16_t len, String& error);
+    bool sendData(const uint8_t* data, size_t len, String& error);
     void end();
 
     uint8_t* m_buf    = nullptr; // 512 bytes while a transfer runs
     size_t   m_fill   = 0;
     uint32_t m_total  = 0;
+    uint16_t m_packet = 512; // shrinks when Marlin asks for resends
     bool     m_active = false;
     String   m_name;
 };

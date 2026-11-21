@@ -225,6 +225,18 @@ void runInstall()
         g_state       = State::Failed;
         g_awaitResult = false;
         g_retryAt     = millis() + 2 * MINUTES;
+        // Did the board never restart (old firmware still running)? Then there's nothing to finish later.
+        const uint32_t start = millis();
+        while (elapsed(start) < 6 * SECONDS && !Marlin::alive()) {
+            if (elapsed(start) % 2000 < 20) Marlin::send("M9100");
+            Marlin::poll();
+            delay(10);
+        }
+        if (Marlin::alive()) {
+            settings.pendingInstall = 0;
+            settingsSave();
+            logf("update: the old firmware is still running");
+        }
     }
 }
 } // namespace

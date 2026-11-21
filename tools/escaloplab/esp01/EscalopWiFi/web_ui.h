@@ -131,7 +131,7 @@ static const char PAGE_MAIN[] PROGMEM = PAGE_HEAD("Escaloplab v80") R"HTML(
   <div class="temps"><div class="temp"><div class="small">Nozzle</div><b id="tH">-</b> <span class="small" id="tHt"></span></div>
   <div class="temp"><div class="small">Bed</div><b id="tB">-</b> <span class="small" id="tBt"></span></div></div>
   <div class="row" id="printCtl"><button class="ghost" data-a="pause">Pause</button><button class="ghost" data-a="resume">Resume</button><button class="danger" data-a="cancel" data-q="Stop this print?">Stop print</button></div>
-  <div class="row" id="idleCtl"><button class="ghost" data-a="preheat_pla">Preheat PLA</button><button class="ghost" data-a="preheat_petg">Preheat PETG</button><button class="ghost" data-a="cooldown">Cool down</button><button class="ghost" data-a="home">Home</button></div>
+  <div class="row" id="idleCtl"><button class="ghost" data-a="preheat_pla">Preheat PLA</button><button class="ghost" data-a="preheat_petg">Preheat PETG</button><button class="ghost" data-a="cooldown">Cool down</button><button class="ghost" data-a="home">Home</button><button class="ghost" data-a="restart" data-q="Restart the printer?">Restart printer</button></div>
 </div>
 
 <div class="card">

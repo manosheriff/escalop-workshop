@@ -6,6 +6,7 @@
 #include <Updater.h>
 
 #include "config.h"
+#include "flasher.h"
 #include "marlin.h"
 #include "net.h"
 #include "settings.h"
@@ -272,6 +273,7 @@ void handleControl()
     else if (a == "preheat_pla") { Marlin::send("M104 S205"); Marlin::send("M140 S60"); }
     else if (a == "preheat_petg") { Marlin::send("M104 S235"); Marlin::send("M140 S80"); }
     else if (a == "cooldown") { Marlin::send("M104 S0"); Marlin::send("M140 S0"); }
+    else if (a == "restart") Flasher::resetBoard(); // also a quick test of the reset wire
     else return sendError(400, "Unknown action");
     sendError(200, "ok");
 }

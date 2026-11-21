@@ -159,9 +159,16 @@ void runInternetTasks(uint32_t tasks)
     WiFi.mode(WIFI_STA);
     WiFi.hostname(Net::hostName());
     WiFi.begin(settings.ssid, settings.pass);
-    const uint32_t start = millis();
+    // Say hello to the printer first: its "Check for updates" screen gives up on a silent module after 5 s
+    uint32_t       lastHello = 0;
+    const uint32_t start     = millis();
     while (WiFi.status() != WL_CONNECTED && elapsed(start) < 20 * SECONDS) {
         Marlin::poll();
+        if (!Marlin::protocol() && elapsed(lastHello) > 2 * SECONDS) {
+            lastHello = millis();
+            Marlin::send("M9100");
+        }
+        if (Marlin::protocol() && !g_attached) attachPrinter();
         delay(10);
     }
     if (WiFi.status() != WL_CONNECTED) {

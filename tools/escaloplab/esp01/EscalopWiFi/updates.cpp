@@ -220,6 +220,8 @@ void runInstall()
     } else {
         // The bootloader is intact: try again in a while, and after the next power-on
         g_error       = "installing failed: " + err;
+        // If the board never restarted (no reset wire), Marlin still runs and waits on "Installing": tell it
+        tellPrinter("M9106 FAIL " + (Marlin::info().fw.length() ? Marlin::info().fw : String("-")));
         g_state       = State::Failed;
         g_awaitResult = false;
         g_retryAt     = millis() + 2 * MINUTES;

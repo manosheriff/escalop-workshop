@@ -923,13 +923,22 @@ Function .onInit
     StrCpy $INSTDIR "${ESCALOP_USER_DIR}"
     StrCpy $IS_DEFAULT_INSTALLDIR 1
 
-  ; Escalop Workshop must be closed (files in use can't be replaced). The app's own updater only
-  ; starts this installer after the app has closed.
+  ; Escalop Workshop must be closed (files in use can't be replaced). The app's updater starts this
+  ; installer silently while it is closing: then wait (hidden, nsExec shows no window) up to 2 minutes.
+  StrCpy $R9 0
 check_running:
   nsExec::ExecToStack '"$SYSDIR\cmd.exe" /c tasklist /FI "IMAGENAME eq orca-slicer.exe" /NH | find /I "orca-slicer.exe"'
   Pop $0
   Pop $1
   StrCmp $0 "0" 0 current_user_install
+  IfSilent 0 ask_to_close
+  IntOp $R9 $R9 + 1
+  IntCmp $R9 120 give_up 0 give_up
+  Sleep 1000
+  Goto check_running
+give_up:
+  Abort
+ask_to_close:
   MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "@CPACK_NSIS_PACKAGE_NAME@ is open. Close it, then click Retry." \
     /SD IDCANCEL IDRETRY check_running
   Abort

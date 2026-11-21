@@ -677,35 +677,39 @@ static void escalop_install_pending_update()
     boost::system::error_code ec;
     if (installer.empty() || !fs::exists(installer, ec))
         return;
-    const fs::path script = installer.parent_path() / "EscalopWorkshop_Update.cmd";
-    {
-        boost::nowide::ofstream f(script.string(), std::ios::binary);
-        // Wait until no Escalop Workshop is running any more, then install
-        f << "@echo off\r\nchcp 65001 >nul\r\n:wait\r\n"
-          << "ping -n 3 127.0.0.1 >nul\r\n"
-          << "tasklist /FI \"IMAGENAME eq orca-slicer.exe\" /NH | find /I \"orca-slicer.exe\" >nul\r\n"
-          << "if not errorlevel 1 goto wait\r\n"
-          << "\"" << installer.string() << "\" /S\r\n"
-          << "del \"" << installer.string() << "\"\r\n"
-          << "(goto) 2>nul & del \"%~f0\"\r\n";
-        if (!f.good())
-            return;
-    }
-    std::wstring        cmd     = L"cmd.exe /c \"\"" + script.wstring() + L"\"\"";
-    STARTUPINFOW        si      = {};
-    PROCESS_INFORMATION pi      = {};
-    si.cb          = sizeof(si);
-    si.dwFlags     = STARTF_USESHOWWINDOW;
-    si.wShowWindow = SW_HIDE;
-    // CREATE_NO_WINDOW gives the script a hidden console that the tools it runs (ping, tasklist) share. Not
-    // DETACHED_PROCESS: without a console of its own, each of those tools opened a visible window every few seconds.
-    if (::CreateProcessW(nullptr, cmd.data(), nullptr, nullptr, FALSE, CREATE_NO_WINDOW | CREATE_BREAKAWAY_FROM_JOB, nullptr,
-                         nullptr, &si, &pi) ||
-        ::CreateProcessW(nullptr, cmd.data(), nullptr, nullptr, FALSE, CREATE_NO_WINDOW, nullptr, nullptr, &si, &pi)) {
+    // The installer itself waits (hidden) until this app has closed, then installs silently. Nothing else is
+    // started: no script, so no console window can ever appear. The file is cleaned up on the next start.
+    std::wstring        cmd = L"\"" + installer.wstring() + L"\" /S";
+    STARTUPINFOW        si  = {};
+    PROCESS_INFORMATION pi  = {};
+    si.cb = sizeof(si);
+    if (::CreateProcessW(nullptr, cmd.data(), nullptr, nullptr, FALSE, CREATE_BREAKAWAY_FROM_JOB, nullptr, nullptr, &si, &pi) ||
+        ::CreateProcessW(nullptr, cmd.data(), nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi)) {
         ::CloseHandle(pi.hThread);
         ::CloseHandle(pi.hProcess);
     } else
-        BOOST_LOG_TRIVIAL(error) << "Update: the install script was not started, error " << ::GetLastError();
+        BOOST_LOG_TRIVIAL(error) << "Update: the installer was not started, error " << ::GetLastError();
+}
+
+// Removes downloaded installers this version doesn't need any more (and the old updater's script)
+static void escalop_cleanup_updates()
+{
+    namespace fs = boost::filesystem;
+    boost::system::error_code ec;
+    const fs::path dir = fs::temp_directory_path(ec) / "EscalopWorkshopUpdate";
+    if (ec || !fs::is_directory(dir, ec))
+        return;
+    const boost::optional<Semver> current = Semver::parse(ESCALOP_VERSION);
+    for (fs::directory_iterator it(dir, ec), end; !ec && it != end; it.increment(ec)) {
+        const std::string name = it->path().filename().string();
+        bool              stale = boost::iends_with(name, ".cmd") || boost::iends_with(name, ".part");
+        if (boost::istarts_with(name, "EscalopWorkshop_") && boost::iends_with(name, ".exe")) {
+            const boost::optional<Semver> v = Semver::parse(name.substr(16, name.size() - 16 - 4));
+            stale = !v || !current || !(*v > *current);
+        }
+        if (stale)
+            fs::remove(it->path(), ec);
+    }
 }
 
 static void escalop_start_update(const std::string& url, unsigned long long size, const std::string& version)
@@ -3017,6 +3021,9 @@ bool GUI_App::on_init_inner()
         if (app_config->get("associate_gcode") == "true")
             associate_files(L"gcode");
 #endif // __WXMSW__
+#ifdef _WIN32
+        escalop_cleanup_updates(); // before an update check can start a new download
+#endif
 
         preset_updater = new PresetUpdater();
         Bind(EVT_SLIC3R_VERSION_ONLINE, [this](const wxCommandEvent& evt) {

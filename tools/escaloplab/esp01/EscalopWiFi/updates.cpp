@@ -128,15 +128,28 @@ void updateSelf(const String& url, const String& version)
     // The module's update uses the staging space
     settings.stagedValid = 0;
     settingsSave();
-    const uint32_t space = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
-    if (!Update.begin(space)) {
-        logf("update: no room for the module's update");
+    // Update.begin() takes a 4 KB buffer. Taken before the download, the secure connection then runs out of memory
+    // and the module crashes (1.0.18 did), so it starts with the first bytes, once the connection is up.
+    const uint32_t space  = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
+    bool           begun  = false;
+    String         err;
+    const bool     ok = Cloud::download(
+        url,
+        [&begun, space](const uint8_t* d, size_t n) {
+            if (!begun) {
+                if (!Update.begin(space)) {
+                    logf("update: no room for the module's update (heap %lu)", (unsigned long)ESP.getFreeHeap());
+                    return false;
+                }
+                begun = true;
+            }
+            return Update.write(const_cast<uint8_t*>(d), n) == n;
+        },
+        [](uint32_t, int32_t) { Marlin::poll(); }, err);
+    if (!begun) {
+        logf("update: module update failed: %s", err.c_str());
         return;
     }
-    String     err;
-    const bool ok = Cloud::download(
-        url, [](const uint8_t* d, size_t n) { return Update.write(const_cast<uint8_t*>(d), n) == n; },
-        [](uint32_t, int32_t) { Marlin::poll(); }, err);
     if (ok && Update.end(true)) {
         logf("update: module updated, restarting");
         setBootTasks(1 | 2); // check in with the new version, then look for printer firmware

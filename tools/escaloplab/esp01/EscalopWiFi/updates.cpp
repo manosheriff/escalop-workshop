@@ -147,8 +147,9 @@ void runCheck(bool fromPrinter)
     }
     if (version.length() && compareVersions(version, WIFI_VERSION) > 0) updateSelf(url, version); // restarts on success
 
-    // 2. The printer's firmware
-    if (!Cloud::latestRelease(FIRMWARE_TAG, ".hex", version, url, err)) {
+    // 2. The printer's firmware: the standard one, or this printer's own channel (set on escaloplab.com)
+    const String fwTag = settings.fwChannel[0] ? String("fw-") + settings.fwChannel + "-v" : String(FIRMWARE_TAG);
+    if (!Cloud::latestRelease(fwTag.c_str(), ".hex", version, url, err)) {
         logf("update: check failed: %s", err.c_str());
         g_error = "no connection to GitHub";
         if (fromPrinter) tellPrinter("M9108 NOINTERNET");

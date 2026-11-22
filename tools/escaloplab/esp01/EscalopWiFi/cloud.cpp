@@ -344,7 +344,7 @@ bool download(const String& urlIn, const std::function<bool(const uint8_t*, size
     return false;
 }
 
-bool checkin(const String& printerFirmware, String& serial, String& error)
+bool checkin(const String& printerFirmware, Checkin& result, String& error)
 {
     if (!ready(error)) return false;
     String payload;
@@ -396,7 +396,20 @@ bool checkin(const String& printerFirmware, String& serial, String& error)
             error = "bad serial in the answer";
             return false;
         }
-    serial = s;
+    result.serial = s;
+
+    // This printer's own setup (optional): steps/mm and a firmware channel. Anything implausible is ignored.
+    const char* axes[4] = {"x", "y", "z", "e"};
+    for (int i = 0; i < 4; ++i) {
+        const float v = answer["hardware"]["steps"][axes[i]] | 0.0f;
+        result.steps[i] = (v >= 1.0f && v <= 10000.0f) ? v : 0.0f;
+    }
+    const String ch = answer["firmware_channel"] | "";
+    bool chOk = ch.length() <= 16;
+    for (size_t i = 0; chOk && i < ch.length(); ++i)
+        chOk = (ch[i] >= '0' && ch[i] <= '9') || (ch[i] >= 'a' && ch[i] <= 'z') || ch[i] == '-';
+    result.fwChannel = chOk ? ch : String();
+    if (!chOk) logf("checkin: ignored firmware channel \"%s\"", ch.c_str());
     return true;
 }
 

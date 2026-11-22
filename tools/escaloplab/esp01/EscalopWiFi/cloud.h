@@ -27,7 +27,15 @@ bool latestRelease(const char* tagPrefix, const char* extension, String& version
 bool download(const String& url, const std::function<bool(const uint8_t*, size_t)>& sink,
               const std::function<void(uint32_t, int32_t)>& progress, String& error);
 
-// Tells escaloplab.com about this printer and gets its serial number back (PROTOCOL.md / the website's API)
-bool checkin(const String& printerFirmware, String& serial, String& error);
+// What escaloplab.com answers to a check-in (PROTOCOL.md, "Check-in")
+struct Checkin
+{
+    String serial;
+    float  steps[4]   = {0, 0, 0, 0}; // X, Y, Z, E steps/mm for this printer; 0 = the firmware's own
+    String fwChannel;                 // "" = standard printer firmware
+};
+
+// Tells escaloplab.com about this printer and gets its serial number and its own setup back
+bool checkin(const String& printerFirmware, Checkin& answer, String& error);
 
 } // namespace Cloud

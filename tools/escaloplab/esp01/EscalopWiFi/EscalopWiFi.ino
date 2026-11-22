@@ -59,6 +59,8 @@ void sendWifiState()
 }
 
 // Once per Marlin start (or when this module starts next to a running printer)
+void sendSteps();
+
 void attachPrinter()
 {
     g_attached = true;
@@ -66,6 +68,7 @@ void attachPrinter()
     sendSerial();
     Marlin::send("M155 S2"); // temperatures every 2 s
     Marlin::send("M27 S2");  // SD print progress every 2 s
+    sendSteps();
 }
 
 void sendScanResults()
@@ -138,15 +141,44 @@ void onNetEvent(Net::Event e)
 
 void checkin()
 {
-    String serial, error;
-    if (!Cloud::checkin(Marlin::info().fw, serial, error)) {
+    Cloud::Checkin answer;
+    String         error;
+    if (!Cloud::checkin(Marlin::info().fw, answer, error)) {
         logf("checkin: %s", error.c_str());
         return;
     }
-    if (serial != settings.serial) {
-        logf("checkin: serial number %s", serial.c_str());
-        strlcpy(settings.serial, serial.c_str(), sizeof(settings.serial));
-        settingsSave(); // the hotspot and network names follow when Net starts
+    bool changed = false;
+    if (answer.serial != settings.serial) {
+        logf("checkin: serial number %s", answer.serial.c_str());
+        strlcpy(settings.serial, answer.serial.c_str(), sizeof(settings.serial));
+        changed = true; // the hotspot and network names follow when Net starts
+    }
+    if (memcmp(answer.steps, settings.steps, sizeof(settings.steps)) != 0) {
+        memcpy(settings.steps, answer.steps, sizeof(settings.steps));
+        logf("checkin: steps/mm X%.2f Y%.2f Z%.2f E%.2f (0 = firmware's own)", answer.steps[0], answer.steps[1],
+             answer.steps[2], answer.steps[3]);
+        changed = true;
+    }
+    if (answer.fwChannel != settings.fwChannel) {
+        strlcpy(settings.fwChannel, answer.fwChannel.c_str(), sizeof(settings.fwChannel));
+        logf("checkin: firmware channel \"%s\"", settings.fwChannel);
+        changed = true;
+    }
+    if (changed) settingsSave();
+}
+
+// This printer's steps/mm from escaloplab.com. Marlin starts with its firmware's values every time, so they are sent
+// after every printer start (never saved with M500, and never in the middle of a print).
+void sendSteps()
+{
+    if (Marlin::info().printing) return;
+    String cmd = "M92";
+    const char axes[4] = {'X', 'Y', 'Z', 'E'};
+    for (int i = 0; i < 4; ++i)
+        if (settings.steps[i] > 0) cmd += String(' ') + axes[i] + String(settings.steps[i], 2);
+    if (cmd.length() > 3) {
+        Marlin::send(cmd);
+        logf("printer: %s (this printer's setup)", cmd.c_str());
     }
 }
 

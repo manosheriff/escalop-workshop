@@ -514,6 +514,7 @@ void handleModuleDone()
     if (!homeNetworkOnly()) return;
     if (!g_moduleUpdateOk) return sendError(500, "Not installed: " + Update.getErrorString());
     logf("web: module software installed by hand");
+    setBootTasks(1 | 2); // the install used the staging area: check in and fetch the printer's firmware again
     sendError(200, "Installed. The Wi-Fi module restarts now; reload this page in 20 seconds.");
     g_restartAt = millis() + 1000;
 }

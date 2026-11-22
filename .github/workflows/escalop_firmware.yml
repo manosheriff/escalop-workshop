@@ -1,10 +1,17 @@
 # Escaloplab v80 printer firmware (Marlin): builds the standard firmware, every variant and every printer file of
 # manosheriff/escalop-v80-firmware (escaloplab/build_variants.py) and publishes them as one release of this repo:
 #   tag firmware-v<version>, assets EscalopV80_Firmware_<version>.hex and EscalopV80_Firmware_<version>_<name>.hex
-# The printers' Wi-Fi modules and escaloplab.com read these releases. Run it by hand (Actions > Run workflow).
+# The printers' Wi-Fi modules and escaloplab.com read these releases.
+# To build: change tools/escaloplab/firmware_release.txt on the escalop branch (ref = what to build, publish = yes to
+# publish, otherwise a draft that printers ignore) and push. Or run it by hand once this file is on the default branch.
 name: v80 printer firmware
 
 on:
+  push:
+    branches:
+      - escalop
+    paths:
+      - 'tools/escaloplab/firmware_release.txt'
   workflow_dispatch:
     inputs:
       ref:
@@ -23,10 +30,30 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - name: What to build
+        id: req
+        env:
+          IN_REF: ${{ inputs.ref }}
+          IN_PUBLISH: ${{ inputs.publish }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            body=$(curl -fsSL "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${GITHUB_SHA}/tools/escaloplab/firmware_release.txt")
+            ref=$(printf '%s
+' "$body" | sed -n 's/^ref *= *\([A-Za-z0-9._\/-]*\).*//p' | head -1)
+            pub=$(printf '%s
+' "$body" | sed -n 's/^publish *= *\([a-z]*\).*//p' | head -1)
+            [ "$pub" = "yes" ] && pub=true || pub=false
+          else
+            ref="$IN_REF"; pub="$IN_PUBLISH"
+          fi
+          [ -n "$ref" ] || { echo "no ref"; exit 1; }
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"; echo "publish=$pub" >> "$GITHUB_OUTPUT"
+          echo "building $ref, publish=$pub"
+
       - uses: actions/checkout@v4
         with:
           repository: manosheriff/escalop-v80-firmware
-          ref: ${{ inputs.ref }}
+          ref: ${{ steps.req.outputs.ref }}
           # A private firmware repo needs a token with read access in this secret; a public one works without
           token: ${{ secrets.FIRMWARE_REPO_TOKEN || github.token }}
 
@@ -58,7 +85,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.build.outputs.version }}
-          PUBLISH: ${{ inputs.publish }}
+          PUBLISH: ${{ steps.req.outputs.publish }}
         run: |
           notes="escaloplab/notes/${VERSION}.md"
           if [ ! -f "$notes" ]; then

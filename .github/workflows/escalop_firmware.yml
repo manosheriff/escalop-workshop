@@ -38,10 +38,9 @@ jobs:
         run: |
           if [ "$GITHUB_EVENT_NAME" = "push" ]; then
             body=$(curl -fsSL "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${GITHUB_SHA}/tools/escaloplab/firmware_release.txt")
-            ref=$(printf '%s
-' "$body" | sed -n 's/^ref *= *\([A-Za-z0-9._\/-]*\).*//p' | head -1)
-            pub=$(printf '%s
-' "$body" | sed -n 's/^publish *= *\([a-z]*\).*//p' | head -1)
+            ref=$(echo "$body" | awk -F= '/^ref *=/ {gsub(/[ \r]/, "", $2); print $2; exit}')
+            pub=$(echo "$body" | awk -F= '/^publish *=/ {gsub(/[ \r]/, "", $2); print $2; exit}')
+            case "$ref" in *[!A-Za-z0-9._/-]*) echo "bad ref"; exit 1;; esac
             [ "$pub" = "yes" ] && pub=true || pub=false
           else
             ref="$IN_REF"; pub="$IN_PUBLISH"

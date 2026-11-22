@@ -1,6 +1,6 @@
 # Pushing a change to this file builds the v80 printer firmware for every variant
 # (.github/workflows/escalop_firmware.yml) and makes the release firmware-v<version> in this repo.
 # ref: branch, tag or commit of github.com/manosheriff/escalop-v80-firmware
-# publish: yes = every printer installs it; no = a draft that printers ignore (check it first)
+# publish: yes = every printer installs it; no = a draft that printers ignore (check it first).
 ref = master
 publish = no

@@ -39,6 +39,29 @@ String waitHashLine(uint32_t timeoutMs)
     return String();
 }
 
+// Waits for a line from Marlin that starts with `prefix` (true), or the timeout (false)
+bool waitLineStarting(const char* prefix, uint32_t timeoutMs)
+{
+    char           line[24];
+    size_t         len   = 0;
+    const size_t   want  = strlen(prefix);
+    const uint32_t start = millis();
+    while (elapsed(start) < timeoutMs) {
+        if (!Serial.available()) {
+            yield();
+            continue;
+        }
+        const char c = char(Serial.read());
+        if (c == '\n') {
+            if (len >= want && strncmp(line, prefix, want) == 0) return true;
+            len = 0;
+        } else if (c != '\r' && len < sizeof(line)) {
+            line[len++] = c;
+        }
+    }
+    return false;
+}
+
 } // namespace
 
 // --------------------------------------------------------------------------------------------------------------
@@ -179,6 +202,9 @@ bool SdUpload::finish(String& error)
         m_fill = 0;
     }
     const bool ok = sendPacket(nullptr, 0, error); // end of file; Marlin answers #D <total>
+    // After #D Marlin empties its receive buffer, then reports the speed ("echo:M9110 ...") and goes back to normal.
+    // Anything sent before that is thrown away (a "start the print" right after the upload was lost), so wait for it.
+    if (ok && !waitLineStarting("echo:M9110", 3000)) logf("upload: no end report from the printer");
     end();
     if (!ok) Marlin::send("M30 " + m_name);
     else logf("upload: %s done, %lu bytes", m_name.c_str(), (unsigned long)m_total);

@@ -288,8 +288,39 @@ void handleControl()
     if (a == "pause") Marlin::send("M25");
     else if (a == "resume") Marlin::send("M24");
     else if (a == "cancel") Marlin::send("M524");
+    else if (a == "temp") { // also while printing, like on the printer's screen
+        const String tool = server.arg("tool");
+        const long   v    = server.arg("target").toInt();
+        // Marlin refuses MAXTEMP - OVERSHOOT and more (275 - 15, 120 - 10)
+        if (tool == "hotend" && v >= 0 && v <= 260) Marlin::send("M104 S" + String(v));
+        else if (tool == "bed" && v >= 0 && v <= 110) Marlin::send("M140 S" + String(v));
+        else return sendError(400, "Temperature out of range (nozzle 0-260, bed 0-110)");
+    }
+    else if (a == "fan") {
+        const long v = server.arg("speed").toInt(); // percent
+        if (v < 0 || v > 100) return sendError(400, "Fan speed out of range");
+        Marlin::send("M106 S" + String(v * 255 / 100));
+    }
     else if (printing()) return sendError(409, "Not while printing");
-    else if (a == "home") Marlin::send("G28");
+    else if (a == "jog") {
+        const String axis = server.arg("axis");
+        const float  d    = server.arg("dist").toFloat();
+        const bool   e    = axis == "E";
+        if (!(axis == "X" || axis == "Y" || axis == "Z" || e) || d == 0 || d > 100 || d < -100 || (e && (d > 50 || d < -50)))
+            return sendError(400, "Bad move");
+        const int feed = axis == "Z" ? 600 : e ? 300 : 3000; // mm/min
+        Marlin::send("G91");
+        Marlin::send("G1 " + axis + String(d, 2) + " F" + String(feed));
+        Marlin::send("G90");
+    }
+    else if (a == "home") {
+        const String axes = server.arg("axes"); // "" = all, else some of X, Y, Z
+        String cmd = "G28";
+        for (const char c : {'X', 'Y', 'Z'})
+            if (axes.indexOf(c) >= 0) cmd += String(' ') + c;
+        Marlin::send(cmd);
+    }
+    else if (a == "motors_off") Marlin::send("M84");
     else if (a == "preheat_pla") { Marlin::send("M104 S205"); Marlin::send("M140 S60"); }
     else if (a == "preheat_petg") { Marlin::send("M104 S235"); Marlin::send("M140 S80"); }
     else if (a == "cooldown") { Marlin::send("M104 S0"); Marlin::send("M140 S0"); }

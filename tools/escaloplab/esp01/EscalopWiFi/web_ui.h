@@ -34,6 +34,10 @@ label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
 .temps{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
 .temp{background:var(--bg);border-radius:14px;padding:10px 12px}
 .temp b{font-family:Tektur,system-ui,sans-serif;font-size:22px}
+.jog{display:grid;grid-template-columns:repeat(3,56px) 24px 56px;grid-template-rows:repeat(3,48px);gap:8px;margin:10px 0}
+.jog button{padding:0;font-weight:700}
+.seg button.sel{background:var(--rose);color:#fff;border-color:var(--rose)}
+.set input{width:84px}
 .bar{height:8px;border-radius:99px;background:var(--line);overflow:hidden;margin:10px 0}
 .bar i{display:block;height:100%;width:0;background:var(--rose);transition:width .4s}
 ul.list{list-style:none;margin:0;padding:0}
@@ -167,7 +171,24 @@ static const char PAGE_MAIN[] PROGMEM = PAGE_HEAD("Escaloplab v80") R"HTML(
   <div class="row"><button class="danger" id="forget">Forget this Wi-Fi</button></div>
 </div>
 </div>
-<footer class="small"><a href="/log">Log</a> &middot; <a href="/update">Wi-Fi module software</a></footer>
+<div class="card" id="ctl">
+  <h2>Manual control</h2>
+  <div class="small" id="ctlNote"></div>
+  <div class="row seg" id="steps"><span class="small">Move by</span><button class="ghost" data-s="0.1">0.1</button><button class="ghost sel" data-s="1">1</button><button class="ghost" data-s="10">10</button><button class="ghost" data-s="50">50 mm</button></div>
+  <div class="jog">
+   <span></span><button class="ghost mv" data-x="Y" data-d="1">Y+</button><span></span><span></span><button class="ghost mv" data-x="Z" data-d="1">Z+</button>
+   <button class="ghost mv" data-x="X" data-d="-1">X&minus;</button><button class="ghost hm" data-h="" title="Home all">&#8962;</button><button class="ghost mv" data-x="X" data-d="1">X+</button><span></span><span></span>
+   <span></span><button class="ghost mv" data-x="Y" data-d="-1">Y&minus;</button><span></span><span></span><button class="ghost mv" data-x="Z" data-d="-1">Z&minus;</button>
+  </div>
+  <div class="row"><button class="ghost hm" data-h="X">Home X</button><button class="ghost hm" data-h="Y">Home Y</button><button class="ghost hm" data-h="Z">Home Z</button><button class="ghost mo" id="motorsOff">Motors off</button></div>
+  <h2 style="margin-top:16px">Heat</h2>
+  <div class="row set"><span class="grow">Nozzle</span><input type="number" id="setH" min="0" max="260" step="5" placeholder="&deg;C"><button class="ghost" data-t="hotend">Set</button><button class="ghost" data-t0="hotend">Off</button></div>
+  <div class="row set" style="margin-top:8px"><span class="grow">Bed</span><input type="number" id="setB" min="0" max="110" step="5" placeholder="&deg;C"><button class="ghost" data-t="bed">Set</button><button class="ghost" data-t0="bed">Off</button></div>
+  <div class="row" style="margin-top:8px"><span class="grow">Part fan</span><input type="range" id="fan" min="0" max="100" step="10" value="0" class="grow"><span class="small" id="fanV">0%</span></div>
+  <h2 style="margin-top:16px">Extruder</h2>
+  <div class="row"><button class="ghost ex" data-e="10">Extrude 10 mm</button><button class="ghost ex" data-e="-10">Retract 10 mm</button></div>
+  <div class="small" style="margin-top:6px">The nozzle must be at 170&deg; or more.</div>
+</div>
 </div>
 <script>
 const $=id=>document.getElementById(id);let st=null,busy=false;
@@ -199,7 +220,11 @@ function render(){const p=st.printer,u=st.update;
  $('inst').classList.toggle('hidden',!u.available||u.state==='installing');$('inst').disabled=p.printing||p.busy;
  const w=st.wifi;$('wifi').innerHTML='Connected to <b>'+esc(w.ssid)+'</b> &middot; '+esc(w.ip)+' &middot; signal '+w.rssi+' dBm';
  $('addr').textContent=w.host+'.local';
- $('upBtn').disabled=busy||!p.online||p.printing}
+ $('upBtn').disabled=busy||!p.online||p.printing;
+ // Moving is off while printing; heat and fan still work (like on the printer's screen)
+ document.querySelectorAll('#ctl .mv,#ctl .hm,#ctl .mo,#ctl .ex').forEach(b=>b.disabled=!p.online||p.printing);
+ document.querySelectorAll('#ctl [data-t],#ctl [data-t0]').forEach(b=>b.disabled=!p.online);$('fan').disabled=!p.online;
+ $('ctlNote').textContent=!p.online?'The printer isn\'t answering.':p.printing?'Moving is off while printing.':''}
 async function files(){try{const r=await(await fetch('/api/files')).json();const ul=$('files');ul.innerHTML='';
  if(!r.files.length){ul.innerHTML='<li class="small">'+(r.error?esc(r.error):'No print files on the card.')+'</li>';return}
  // Group by folder: the long path when Marlin gives one, else the 8.3 path
@@ -214,6 +239,16 @@ async function files(){try{const r=await(await fetch('/api/files')).json();const
   b[1].onclick=()=>{if(confirm('Delete '+f.title+'?'))post('/api/job',{action:'delete',name:f.name}).then(files).catch(e=>alert(e.message))};ul.appendChild(li)})})}catch(e){}}
 document.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>{if(b.dataset.q&&!confirm(b.dataset.q))return;post('/api/control',{action:b.dataset.a}).then(refresh).catch(e=>alert(e.message))});
 $('reload').onclick=files;
+// Manual control
+let step=1;const ctl=(d)=>post('/api/control',d).then(refresh).catch(e=>alert(e.message));
+document.querySelectorAll('#steps [data-s]').forEach(b=>b.onclick=()=>{step=+b.dataset.s;document.querySelectorAll('#steps [data-s]').forEach(x=>x.classList.toggle('sel',x===b))});
+document.querySelectorAll('.mv').forEach(b=>b.onclick=()=>ctl({action:'jog',axis:b.dataset.x,dist:(+b.dataset.d)*step}));
+document.querySelectorAll('.hm').forEach(b=>b.onclick=()=>ctl({action:'home',axes:b.dataset.h}));
+$('motorsOff').onclick=()=>ctl({action:'motors_off'});
+document.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{const v=$(b.dataset.t==='bed'?'setB':'setH').value;if(v!=='')ctl({action:'temp',tool:b.dataset.t,target:v})});
+document.querySelectorAll('[data-t0]').forEach(b=>b.onclick=()=>ctl({action:'temp',tool:b.dataset.t0,target:0}));
+$('fan').oninput=()=>{$('fanV').textContent=$('fan').value+'%'};$('fan').onchange=()=>ctl({action:'fan',speed:$('fan').value});
+document.querySelectorAll('.ex').forEach(b=>b.onclick=()=>ctl({action:'jog',axis:'E',dist:b.dataset.e}));
 $('chk').onclick=()=>post('/api/update/check').then(()=>{$('upd').textContent='Checking. The Wi-Fi module restarts for this; the page is back in about 30 seconds.'});
 $('inst').onclick=()=>{if(confirm('Install the new printer firmware now? The printer restarts.'))post('/api/update/install').then(refresh).catch(e=>alert(e.message))};
 $('forget').onclick=()=>{if(confirm('Forget this Wi-Fi? The printer turns its setup hotspot on.'))post('/api/wifi/forget')};

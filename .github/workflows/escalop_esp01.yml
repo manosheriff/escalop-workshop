@@ -13,6 +13,9 @@ on:
       - '.github/workflows/escalop_esp01.yml'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -51,3 +54,18 @@ jobs:
         with:
           name: EscalopV80_WiFi_${{ steps.package.outputs.version }}
           path: tools/escaloplab/esp01/out/*
+
+      # Every new WIFI_VERSION pushed to escalop is published as wifi-v<version>: all modules install it by themselves
+      # within a day (they check at power-on, daily and on "Check for updates"). Already published = nothing to do.
+      - name: Publish for the modules
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.package.outputs.version }}
+        run: |
+          if gh release view "wifi-v${VERSION}" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "wifi-v${VERSION} is already published"; exit 0
+          fi
+          printf 'Escaloplab v80 Wi-Fi module %s\n\nThe Wi-Fi module installs this by itself; the printer keeps running.\n' "$VERSION" > notes.md
+          gh release create "wifi-v${VERSION}" -R "$GITHUB_REPOSITORY" --latest=false --target "$GITHUB_SHA" \
+            --title "v80 Wi-Fi module ${VERSION}" --notes-file notes.md "out/EscalopV80_WiFi_${VERSION}.bin.gz"

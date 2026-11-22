@@ -16,11 +16,12 @@ struct Settings
     uint32_t stagedCrc;
     uint8_t  pendingInstall;    // 1 while installing: finish the job after a power cut
 
-    // Per-printer setup from escaloplab.com (check-in answer). Added in 1.0.14 after the fields above, so modules
-    // updated from older versions keep their Wi-Fi; extMagic tells whether these fields were ever written.
+    // Printer variants (Marlin repo escaloplab/variants). Added after the fields above, so modules updated from older
+    // versions keep their Wi-Fi; extMagic tells whether these fields were ever written.
     uint32_t extMagic;
-    float    steps[4];          // X, Y, Z, E steps/mm; 0 = use the printer firmware's own value
-    char     fwChannel[17];     // "" = standard firmware; else releases tagged fw-<channel>-vX.Y.Z
+    uint8_t  siteVariantSet;    // escaloplab.com said which variant this printer gets (check-in answer)
+    char     siteVariant[17];   // that variant; "" = standard
+    char     stagedVariant[17]; // variant of the firmware in the staging area; "" = standard
 };
 
 extern Settings settings;

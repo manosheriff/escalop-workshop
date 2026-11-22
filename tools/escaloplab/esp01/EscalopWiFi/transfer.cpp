@@ -268,6 +268,7 @@ bool receiveSdFirmware(uint32_t bytes, String& error)
     }
     settings.stagedValid = 1;
     settings.stagedVersion[0] = 0; // unknown until it runs
+    settings.stagedVariant[0] = 0;
     settings.stagedSize  = hex.size();
     settings.stagedCrc   = hex.crc();
     settingsSave();

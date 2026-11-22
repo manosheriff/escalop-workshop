@@ -44,11 +44,32 @@ bool printerIdle()
            t.bed < 45;
 }
 
+// Staged firmware worth installing: a newer version, or the same version for another variant (staff changed it)
 bool stagedNewer()
 {
     const String installed = Marlin::info().fw;
-    return settings.stagedValid && settings.stagedVersion[0] && installed.length() &&
-           compareVersions(settings.stagedVersion, installed) > 0;
+    if (!settings.stagedValid || !settings.stagedVersion[0] || !installed.length()) return false;
+    const int cmp = compareVersions(settings.stagedVersion, installed);
+    return cmp > 0 || (cmp == 0 && Marlin::info().variant != settings.stagedVariant);
+}
+
+// The variant this printer should run: what escaloplab.com says, else what it runs now ("" = standard).
+// A printer's own file (named after its serial number) comes first when a release has one; see firmwareRank.
+String wantedVariant()
+{
+    if (settings.siteVariantSet) return settings.siteVariant;
+    const String running = Marlin::info().variant;
+    return running == settings.serial ? String() : running; // its own file was removed: back to standard
+}
+
+// "EscalopV80_Firmware_1.7.5.hex" -> "", "EscalopV80_Firmware_1.7.5_300-bowden.hex" -> "300-bowden"; "?" otherwise
+String assetVariant(const String& name, const String& version)
+{
+    const String head = "EscalopV80_Firmware_" + version;
+    if (!name.startsWith(head) || !name.endsWith(".hex")) return "?";
+    const String rest = name.substring(head.length(), name.length() - 4);
+    if (rest.length() == 0) return "";
+    return rest[0] == '_' && rest.length() > 1 && Cloud::validVariant(rest.substring(1)) ? rest.substring(1) : String("?");
 }
 
 // Lines for the printer that come before it answered (start-up checks) wait until it has
@@ -60,7 +81,7 @@ void tellPrinter(const String& line)
     else if (!line.startsWith("M9105") && g_deferred.size() < 4) g_deferred.push_back(line);
 }
 
-bool downloadFirmware(const String& url, const String& version, bool fromPrinter)
+bool downloadFirmware(const String& url, const String& version, const String& variant, bool fromPrinter)
 {
     g_state    = State::Downloading;
     g_progress = 0;
@@ -74,6 +95,7 @@ bool downloadFirmware(const String& url, const String& version, bool fromPrinter
     hex.begin();
     int    lastReported = -10;
     String err;
+    settings.stagedVariant[0] = 0;
     const bool ok = Cloud::download(
         url, [&hex](const uint8_t* d, size_t n) { return hex.feed(d, n); },
         [&](uint32_t received, int32_t total) {
@@ -92,10 +114,11 @@ bool downloadFirmware(const String& url, const String& version, bool fromPrinter
     }
     settings.stagedValid = 1;
     strlcpy(settings.stagedVersion, version.c_str(), sizeof(settings.stagedVersion));
+    strlcpy(settings.stagedVariant, variant.c_str(), sizeof(settings.stagedVariant));
     settings.stagedSize = hex.size();
     settings.stagedCrc  = hex.crc();
     settingsSave();
-    logf("update: firmware %s ready", version.c_str());
+    logf("update: firmware %s%s%s ready", version.c_str(), variant.length() ? " " : "", variant.c_str());
     return true;
 }
 
@@ -129,7 +152,7 @@ void runCheck(bool fromPrinter)
 {
     g_state = State::Checking;
     g_error = "";
-    String version, url, err;
+    String version, url, asset, err;
 
     if (WiFi.status() != WL_CONNECTED) {
         if (fromPrinter) tellPrinter("M9108 NOINTERNET");
@@ -138,7 +161,8 @@ void runCheck(bool fromPrinter)
     }
 
     // 1. This module's own software
-    if (!Cloud::latestRelease(WIFI_TAG, ".bin.gz", version, url, err)) {
+    const auto wifiRank = [](const String& name, const String&) { return name.endsWith(".bin.gz") ? 0 : -1; };
+    if (!Cloud::latestRelease(WIFI_TAG, wifiRank, version, url, asset, err)) {
         logf("update: check failed: %s", err.c_str());
         g_error = "no connection to GitHub";
         if (fromPrinter) tellPrinter("M9108 NOINTERNET");
@@ -147,23 +171,31 @@ void runCheck(bool fromPrinter)
     }
     if (version.length() && compareVersions(version, WIFI_VERSION) > 0) updateSelf(url, version); // restarts on success
 
-    // 2. The printer's firmware: the standard one, or this printer's own channel (set on escaloplab.com)
-    const String fwTag = settings.fwChannel[0] ? String("fw-") + settings.fwChannel + "-v" : String(FIRMWARE_TAG);
-    if (!Cloud::latestRelease(fwTag.c_str(), ".hex", version, url, err)) {
+    // 2. The printer's firmware: its own file (named after its serial number), else its variant, else standard
+    const String serial = settings.serial, variant = wantedVariant();
+    const auto   fwRank = [&serial, &variant](const String& name, const String& v) {
+        const String a = assetVariant(name, v);
+        if (a == "?") return -1;
+        if (serial.length() && a == serial) return 0;
+        return a == variant ? 1 : -1;
+    };
+    if (!Cloud::latestRelease(FIRMWARE_TAG, fwRank, version, url, asset, err)) {
         logf("update: check failed: %s", err.c_str());
         g_error = "no connection to GitHub";
         if (fromPrinter) tellPrinter("M9108 NOINTERNET");
         g_state = State::Idle;
         return;
     }
-    const String installed = Marlin::info().fw;
-    if (version.length() == 0 || (installed.length() && compareVersions(version, installed) <= 0)) {
+    const String installed = Marlin::info().fw, chosen = version.length() ? assetVariant(asset, version) : String();
+    const int    cmp       = installed.length() && version.length() ? compareVersions(version, installed) : 1;
+    if (version.length() == 0 || cmp < 0 || (cmp == 0 && chosen == Marlin::info().variant)) {
         logf("update: printer firmware %s is up to date", installed.c_str());
         if (fromPrinter) tellPrinter("M9108 UPTODATE");
         g_state = State::Idle;
         return;
     }
-    if (!(settings.stagedValid && version == settings.stagedVersion) && !downloadFirmware(url, version, fromPrinter)) {
+    if (!(settings.stagedValid && version == settings.stagedVersion && chosen == settings.stagedVariant) &&
+        !downloadFirmware(url, version, chosen, fromPrinter)) {
         if (fromPrinter) tellPrinter("M9108 DLFAIL");
         g_state = State::Failed;
         return;

@@ -1,0 +1,75 @@
+# Escaloplab v80 printer firmware (Marlin): builds the standard firmware, every variant and every printer file of
+# manosheriff/escalop-v80-firmware (escaloplab/build_variants.py) and publishes them as one release of this repo:
+#   tag firmware-v<version>, assets EscalopV80_Firmware_<version>.hex and EscalopV80_Firmware_<version>_<name>.hex
+# The printers' Wi-Fi modules and escaloplab.com read these releases. Run it by hand (Actions > Run workflow).
+name: v80 printer firmware
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Firmware repo branch, tag or commit to build'
+        default: 'master'
+        required: true
+      publish:
+        description: 'Publish the release (otherwise a draft that printers ignore)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: manosheriff/escalop-v80-firmware
+          ref: ${{ inputs.ref }}
+          # A private firmware repo needs a token with read access in this secret; a public one works without
+          token: ${{ secrets.FIRMWARE_REPO_TOKEN || github.token }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Cache PlatformIO
+        uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: pio-mega2560-${{ hashFiles('platformio.ini') }}
+
+      - name: Build every variant
+        id: build
+        run: |
+          pip install --quiet platformio
+          python escaloplab/build_variants.py
+          version=$(sed -n 's/^#define ESCALOPLAB_FW_VERSION "\([0-9.]*\)".*/\1/p' Marlin/Configuration.h)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          ls -l escaloplab/out
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: EscalopV80_Firmware_${{ steps.build.outputs.version }}
+          path: escaloplab/out/*.hex
+
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.build.outputs.version }}
+          PUBLISH: ${{ inputs.publish }}
+        run: |
+          notes="escaloplab/notes/${VERSION}.md"
+          if [ ! -f "$notes" ]; then
+            notes=$(mktemp)
+            printf 'Escaloplab v80 printer firmware %s\n\nYour printer installs the right file for its bed and extruder by itself over Wi-Fi.\n' "$VERSION" > "$notes"
+          fi
+          draft=--draft
+          [ "$PUBLISH" = "true" ] && draft=
+          # The standard file first: older Wi-Fi modules take the first .hex they find
+          gh release create "firmware-v${VERSION}" -R "$GITHUB_REPOSITORY" $draft --latest=false \
+            --title "v80 firmware ${VERSION}" --notes-file "$notes" "escaloplab/out/EscalopV80_Firmware_${VERSION}.hex"
+          for f in escaloplab/out/EscalopV80_Firmware_${VERSION}_*.hex; do
+            gh release upload "firmware-v${VERSION}" -R "$GITHUB_REPOSITORY" "$f"
+          done

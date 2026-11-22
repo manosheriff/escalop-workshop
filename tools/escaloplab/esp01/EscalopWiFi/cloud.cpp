@@ -221,10 +221,20 @@ bool ensureTime()
     return false;
 }
 
-bool latestRelease(const char* tagPrefix, const char* extension, String& version, String& url, String& error)
+bool validVariant(const String& name)
 {
-    version = "";
-    url     = "";
+    if (name.length() > 16) return false;
+    for (size_t i = 0; i < name.length(); ++i)
+        if (!((name[i] >= '0' && name[i] <= '9') || (name[i] >= 'a' && name[i] <= 'z') || name[i] == '-')) return false;
+    return true;
+}
+
+bool latestRelease(const char* tagPrefix, const std::function<int(const String&, const String&)>& rank, String& version,
+                   String& url, String& assetName, String& error)
+{
+    version   = "";
+    url       = "";
+    assetName = "";
 
     // 1. All tags with the prefix (a short list, unlike the releases of the whole repository)
     std::vector<String> versions;
@@ -260,16 +270,22 @@ bool latestRelease(const char* tagPrefix, const char* extension, String& version
                      filter, status, error))
             return false;
         if (status != 200 || (doc["draft"] | false) || (doc["prerelease"] | false)) continue;
+        int best = -1;
         for (JsonObject asset : doc["assets"].as<JsonArray>()) {
-            String name  = asset["name"] | "";
-            String lower = name;
-            lower.toLowerCase();
-            if (!endsWithIgnoreCase(name, extension) || lower.indexOf("direct") >= 0) continue;
-            version = versions[i];
-            url     = asset["browser_download_url"] | "";
-            logf("cloud: newest %s%s: %s", tagPrefix, version.c_str(), name.c_str());
-            return url.startsWith("https://");
+            const String name = asset["name"] | "";
+            const int    r    = rank(name, versions[i]);
+            if (r < 0 || (best >= 0 && r >= best)) continue;
+            best      = r;
+            assetName = name;
+            url       = asset["browser_download_url"] | "";
         }
+        if (best < 0) {
+            logf("cloud: %s%s has no file for this printer", tagPrefix, versions[i].c_str());
+            continue;
+        }
+        version = versions[i];
+        logf("cloud: newest %s%s: %s", tagPrefix, version.c_str(), assetName.c_str());
+        return url.startsWith("https://");
     }
     return true;
 }
@@ -398,18 +414,16 @@ bool checkin(const String& printerFirmware, Checkin& result, String& error)
         }
     result.serial = s;
 
-    // This printer's own setup (optional): steps/mm and a firmware channel. Anything implausible is ignored.
-    const char* axes[4] = {"x", "y", "z", "e"};
-    for (int i = 0; i < 4; ++i) {
-        const float v = answer["hardware"]["steps"][axes[i]] | 0.0f;
-        result.steps[i] = (v >= 1.0f && v <= 10000.0f) ? v : 0.0f;
+    // The firmware variant staff chose for this printer (optional: older website versions don't send it)
+    if (answer["firmware_variant"].is<const char*>()) {
+        const String v = answer["firmware_variant"].as<const char*>();
+        if (validVariant(v)) {
+            result.variantSet = true;
+            result.variant    = v;
+        } else {
+            logf("checkin: ignored firmware variant \"%s\"", v.c_str());
+        }
     }
-    const String ch = answer["firmware_channel"] | "";
-    bool chOk = ch.length() <= 16;
-    for (size_t i = 0; chOk && i < ch.length(); ++i)
-        chOk = (ch[i] >= '0' && ch[i] <= '9') || (ch[i] >= 'a' && ch[i] <= 'z') || ch[i] == '-';
-    result.fwChannel = chOk ? ch : String();
-    if (!chOk) logf("checkin: ignored firmware channel \"%s\"", ch.c_str());
     return true;
 }
 

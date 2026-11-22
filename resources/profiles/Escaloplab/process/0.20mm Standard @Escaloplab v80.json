@@ -105,6 +105,9 @@
     "gap_infill_speed": "40",
     "travel_speed": "180",
     "compatible_printers": [
-        "Escaloplab v80 0.4 nozzle"
+        "Escaloplab v80 0.4 nozzle",
+        "Escaloplab v80 Direct 0.4 nozzle",
+        "Escaloplab v80 300 0.4 nozzle",
+        "Escaloplab v80 300 Direct 0.4 nozzle"
     ]
 }

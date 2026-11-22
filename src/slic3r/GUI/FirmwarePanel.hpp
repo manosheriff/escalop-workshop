@@ -61,6 +61,9 @@ private:
     void flash(Utils::FirmwareImage image, const wxString& what);
     void set_status(const wxString& text, Tone tone);
     std::string hex_url_for_model() const;
+    // The firmware variant for a printer model ("" = standard, i.e. 220 bed with a Bowden tube):
+    // "Escaloplab v80 300 Direct" -> "300-direct" (Marlin repo escaloplab/variants)
+    static std::string variant_for_model(const std::string& model);
 
     // Background work reaches the panel only while this lives (see run_on_ui)
     std::shared_ptr<int> m_alive = std::make_shared<int>(0);
@@ -70,6 +73,7 @@ private:
     boost::optional<Release>           m_release;
     std::vector<std::string>           m_models;
     std::string                        m_model;
+    std::string                        m_printer_variant; // what the connected printer runs ("" = standard or unknown)
     std::vector<Port>                  m_ports;
     std::string                        m_port;
     wxString                           m_printer_text;

@@ -13,6 +13,7 @@ struct Info
 {
     bool     valid     = false; // an //ESC:INFO arrived since Marlin last started
     String   fw;                // e.g. "1.7.0"; also filled from M115 for older firmware without the protocol
+    String   variant;           // firmware variant, e.g. "300-bowden"; "" = standard (or firmware before variants)
     bool     sd        = false;
     bool     printing  = false;
     bool     busy      = false;

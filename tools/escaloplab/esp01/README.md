@@ -116,3 +116,11 @@ named after the chip (`Escalop-v80-3F9A2C`). At the factory: connect each printe
 5. Firmware: publish a newer `firmware-v` release, *Menu > Firmware > Check for updates* → offer → Update.
 6. *Update from SD card* with the `.hex` on the card.
 7. A USB update from Escalop Workshop's Printer tab with the module connected.
+
+## Printer firmware variants (1.0.15)
+
+Each `firmware-vX.Y.Z` release holds one `.hex` per printer variant (Marlin repo `escaloplab/variants`):
+`EscalopV80_Firmware_<v>.hex` (standard) and `EscalopV80_Firmware_<v>_<name>.hex`. The module installs the file named
+after its own serial number if there is one, else the variant from the check-in answer (`"firmware_variant"`), else
+the variant the printer runs now (`variant=` in `//ESC:INFO`), else standard. A changed variant is installed even
+at the same version.

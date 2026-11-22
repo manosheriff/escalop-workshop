@@ -1,5 +1,6 @@
 #include "marlin.h"
 
+#include "cloud.h"
 #include "config.h"
 #include "util.h"
 
@@ -57,6 +58,7 @@ void parseInfo(const String& args)
         if (eq < 0) continue;
         const String key = parts[i].substring(0, eq), value = parts[i].substring(eq + 1);
         if (key == "fw" && isVersion(value)) g_info.fw = value;
+        else if (key == "variant" && Cloud::validVariant(value)) g_info.variant = value;
         else if (key == "sd") g_info.sd = value == "1";
         else if (key == "printing") g_info.printing = value == "1";
         else if (key == "busy") g_info.busy = value == "1";

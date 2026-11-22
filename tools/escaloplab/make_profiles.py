@@ -2,10 +2,10 @@
 """
 Generates the Escaloplab vendor profiles (resources/profiles/Escaloplab*).
 
-The v80 (210 x 210 x 200 mm bed, Marlin with auto bed leveling, Bowden extruder)
-is one printer model with a 0.4 mm nozzle preset. (The direct-drive "v80 Direct"
-was dropped in November 2026 at the owner's request; add it back to MODELS with
-drive "direct" to bring it back.) At the owner's request the motion limits, retraction and print
+The v80 comes in four variants, one printer model each with a 0.4 mm nozzle preset: 220 bed (printable
+210 x 210) or 300 bed (printable 290 x 290), Bowden tube or direct drive; height 200, Marlin with auto bed
+leveling. They match the printer firmware variants (Marlin repo escaloplab/variants; the USB updater maps a model
+to its variant by "300" and "Direct" in the name), so keep those words in the names. At the owner's request the motion limits, retraction and print
 qualities are the Prusa MK3S 0.4 ones, read from tools/escaloplab/prusa_snapshot
 (copied from OrcaSlicer 2.4.2). Prusa-firmware-only G-code (M862, G80, M907) is replaced by Marlin
 equivalents. The Bowden version keeps a longer retraction, which a Bowden tube
@@ -28,11 +28,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "resources" / "profiles"
 VENDOR = "Escaloplab"
-VERSION = "01.00.04.00"
+VERSION = "01.00.05.00"
 
 # (model name, bed X, bed Y, height, drive)
 MODELS = [
-    ("Escaloplab v80", 210, 210, 200, "bowden"),
+    ("Escaloplab v80", 210, 210, 200, "bowden"),            # firmware: standard (= 220-bowden)
+    ("Escaloplab v80 Direct", 210, 210, 200, "direct"),     # 220-direct
+    ("Escaloplab v80 300", 290, 290, 200, "bowden"),        # 300-bowden
+    ("Escaloplab v80 300 Direct", 290, 290, 200, "direct"), # 300-direct
 ]
 
 PRUSA_PRINTER = "Prusa MK3S 0.4 nozzle"

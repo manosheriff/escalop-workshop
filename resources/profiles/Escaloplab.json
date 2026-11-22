@@ -1,13 +1,25 @@
 {
     "name": "Escaloplab",
     "url": "https://escaloplab.com",
-    "version": "01.00.04.00",
+    "version": "01.00.05.00",
     "force_update": "0",
     "description": "Escaloplab v80 configurations",
     "machine_model_list": [
         {
             "name": "Escaloplab v80",
             "sub_path": "machine/Escaloplab v80.json"
+        },
+        {
+            "name": "Escaloplab v80 Direct",
+            "sub_path": "machine/Escaloplab v80 Direct.json"
+        },
+        {
+            "name": "Escaloplab v80 300",
+            "sub_path": "machine/Escaloplab v80 300.json"
+        },
+        {
+            "name": "Escaloplab v80 300 Direct",
+            "sub_path": "machine/Escaloplab v80 300 Direct.json"
         }
     ],
     "process_list": [
@@ -45,6 +57,18 @@
         {
             "name": "Escaloplab v80 0.4 nozzle",
             "sub_path": "machine/Escaloplab v80 0.4 nozzle.json"
+        },
+        {
+            "name": "Escaloplab v80 Direct 0.4 nozzle",
+            "sub_path": "machine/Escaloplab v80 Direct 0.4 nozzle.json"
+        },
+        {
+            "name": "Escaloplab v80 300 0.4 nozzle",
+            "sub_path": "machine/Escaloplab v80 300 0.4 nozzle.json"
+        },
+        {
+            "name": "Escaloplab v80 300 Direct 0.4 nozzle",
+            "sub_path": "machine/Escaloplab v80 300 Direct 0.4 nozzle.json"
         }
     ]
 }

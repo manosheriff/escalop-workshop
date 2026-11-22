@@ -3,6 +3,7 @@
 #include "FirmwarePanel.hpp"
 
 #include <algorithm>
+#include <regex>
 #include <cstring>
 #include <thread>
 
@@ -452,15 +453,37 @@ void FirmwarePanel::fetch_latest()
         .perform();
 }
 
+std::string FirmwarePanel::variant_for_model(const std::string& model)
+{
+    const bool big    = boost::icontains(model, "300");
+    const bool direct = boost::icontains(model, "direct");
+    if (!big && !direct)
+        return {};
+    return std::string(big ? "300" : "220") + (direct ? "-direct" : "-bowden");
+}
+
 std::string FirmwarePanel::hex_url_for_model() const
 {
     if (!m_release || m_release->hex_files.empty())
         return {};
-    // "...direct....hex" is the Direct model's; any other .hex the standard model's
-    const bool direct = boost::icontains(m_model, "direct");
-    for (const auto& [name, url] : m_release->hex_files)
-        if (boost::icontains(name, "direct") == direct)
+    // Release assets: EscalopV80_Firmware_<version>.hex (standard) and EscalopV80_Firmware_<version>_<variant>.hex
+    const auto url_for = [this](const std::string& variant) -> std::string {
+        const std::string want = "EscalopV80_Firmware_" + m_release->version + (variant.empty() ? "" : "_" + variant) + ".hex";
+        for (const auto& [name, url] : m_release->hex_files)
+            if (boost::iequals(name, want))
+                return url;
+        return {};
+    };
+    // A printer with its own build (named after its serial number) keeps getting it
+    const bool own_build = !m_printer_variant.empty() && m_printer_variant != "220-bowden" &&
+                           !boost::starts_with(m_printer_variant, "220-") && !boost::starts_with(m_printer_variant, "300-");
+    if (own_build)
+        if (std::string url = url_for(m_printer_variant); !url.empty())
             return url;
+    const std::string variant = variant_for_model(m_model);
+    if (std::string url = url_for(variant); !url.empty() || !variant.empty())
+        return url;
+    // Releases before variants had one file
     return m_release->hex_files.size() == 1 ? m_release->hex_files.front().second : std::string();
 }
 
@@ -468,16 +491,22 @@ void FirmwarePanel::check_printer()
 {
     if (m_port.empty())
         return;
-    m_checking = true;
+    m_checking        = true;
+    m_printer_variant = "";
     update_ui();
     const std::string  port  = m_port;
     std::weak_ptr<int> alive = m_alive;
     std::thread([this, port, alive] {
-        wxString text;
-        Tone     tone = Tone::Normal;
+        wxString    text;
+        Tone        tone = Tone::Normal;
+        std::string variant;
         try {
             if (auto info = Utils::AvrFlasher::query(port)) {
                 text = format_wxstr(_L("On the printer now: %1%"), info->firmware_name);
+                // "Marlin ... Escaloplab-1.7.4 (300-bowden) (Nov 22 2026 ...)": the variant it was built for
+                std::smatch m;
+                if (std::regex_search(info->firmware_name, m, std::regex(R"(Escaloplab-[0-9.]+ \(([a-z0-9-]{1,16})\))")))
+                    variant = m[1].str();
                 if (!info->machine_type.empty())
                     text += wxString::FromUTF8(" Â· ") + from_u8(info->machine_type);
             } else {
@@ -488,10 +517,18 @@ void FirmwarePanel::check_printer()
             text = from_u8(e.what());
             tone = Tone::Error;
         }
-        run_on_ui(alive, [this, text, tone] {
-            m_checking     = false;
-            m_printer_text = text;
-            m_printer_tone = tone;
+        run_on_ui(alive, [this, text, tone, variant] {
+            m_checking        = false;
+            m_printer_text    = text;
+            m_printer_tone    = tone;
+            m_printer_variant = variant;
+            // Pick the model the printer's firmware was built for (bed size and extruder)
+            if (!variant.empty())
+                for (const std::string& model : m_models)
+                    if (variant_for_model(model) == (variant == "220-bowden" ? std::string() : variant)) {
+                        m_model = model;
+                        break;
+                    }
             update_ui();
         });
     }).detach();

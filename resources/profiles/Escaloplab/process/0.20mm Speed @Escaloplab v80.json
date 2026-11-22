@@ -141,6 +141,9 @@
     "top_surface_speed": "50",
     "wall_loops": "2",
     "compatible_printers": [
-        "Escaloplab v80 0.4 nozzle"
+        "Escaloplab v80 0.4 nozzle",
+        "Escaloplab v80 Direct 0.4 nozzle",
+        "Escaloplab v80 300 0.4 nozzle",
+        "Escaloplab v80 300 Direct 0.4 nozzle"
     ]
 }

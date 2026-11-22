@@ -14,6 +14,7 @@ constexpr uint32_t BUSY_TIMEOUT   = 60 * SECONDS; // while Marlin says "busy: pr
 Info       g_info;
 Temps      g_temps;
 Position   g_pos;
+uint32_t   g_printsDone = 0; // prints that finished since this module started
 SdProgress g_sd;
 bool       g_protocol  = false;
 uint32_t   g_lastLine  = 0;
@@ -183,6 +184,7 @@ void handleLine(const char* s)
         return;
     }
     if (startsWith(s, "Not SD printing") || startsWith(s, "Done printing file")) {
+        if (startsWith(s, "Done printing file")) ++g_printsDone; // finished, not stopped
         g_sd.printing = false;
         g_sd.at       = millis();
         return;
@@ -233,6 +235,7 @@ const Info&       info() { return g_info; }
 const Temps&      temps() { return g_temps; }
 const SdProgress& sdProgress() { return g_sd; }
 const Position&   position() { return g_pos; }
+uint32_t          printsDone() { return g_printsDone; }
 bool              protocol() { return g_protocol; }
 bool              alive() { return g_lastLine != 0 && elapsed(g_lastLine) < 30 * SECONDS; }
 uint32_t          lastBoot() { return g_lastBoot; }

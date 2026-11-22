@@ -205,6 +205,7 @@ void handleStatus()
     p["paused"]     = info.printing && !sd.printing && elapsed(sd.at) < 6 * SECONDS;
     p["busy"]       = info.busy;
     p["file"]       = g_lastFile;
+    p["done"]       = Marlin::printsDone(); // Escalop Workshop tells the user when this goes up
     if (sd.printing && sd.size) p["progress"] = int(uint64_t(sd.pos) * 100 / sd.size);
     else p["progress"] = nullptr;
     JsonArray h = p["hotend"].to<JsonArray>();

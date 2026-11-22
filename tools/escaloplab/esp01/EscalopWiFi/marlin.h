@@ -50,6 +50,7 @@ const Info&       info();
 const Temps&      temps();
 const SdProgress& sdProgress();
 const Position&   position(); // from M114 answers (ask with send("M114"))
+uint32_t          printsDone(); // prints that finished ("Done printing file") since this module started
 bool              protocol();       // the firmware speaks PROTOCOL.md (sent an INFO at least once)
 bool              alive();          // any output from Marlin in the last 30 s
 uint32_t          lastBoot();       // millis() when Marlin last said it started (0 = not seen)

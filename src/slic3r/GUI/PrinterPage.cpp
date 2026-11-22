@@ -5,6 +5,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/asio/ip/address.hpp>
 
+#include <wx/notifmsg.h>
 #include <wx/scrolwin.h>
 #include <wx/simplebook.h>
 #include <wx/sizer.h>
@@ -25,6 +26,12 @@
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "slic3r/Utils/Bonjour.hpp"
+#include "slic3r/Utils/Http.hpp"
+#include "NotificationManager.hpp"
+#include "Plater.hpp"
+#include "format.hpp"
+
+#include <nlohmann/json.hpp>
 
 namespace Slic3r {
 namespace GUI {
@@ -82,9 +89,83 @@ PrinterPage::PrinterPage(wxWindow* parent, bool with_firmware) : wxPanel(parent,
     sizer->Add(m_book, 1, wxEXPAND);
     SetSizer(sizer);
     show(Section::Find);
+
+    if (with_firmware) { // not in the G-code viewer
+        m_watch.SetOwner(this);
+        Bind(wxEVT_TIMER, [this](wxTimerEvent&) { watch_printer(); }, m_watch.GetId());
+        m_watch.Start(15000);
+    }
 }
 
-PrinterPage::~PrinterPage() = default;
+PrinterPage::~PrinterPage() { m_watch.Stop(); }
+
+void PrinterPage::watch_printer()
+{
+    if (m_watching || !wxGetApp().app_config)
+        return;
+    const std::string host = wxGetApp().app_config->get("escalop_printer_host");
+    if (host.empty())
+        return;
+    std::string url = boost::starts_with(host, "http://") || boost::starts_with(host, "https://") ? host : "http://" + host;
+    while (!url.empty() && url.back() == '/')
+        url.pop_back();
+    m_watching               = true;
+    std::weak_ptr<int> alive = m_alive;
+    Http::get(url + "/api/status")
+        .timeout_connect(3)
+        .timeout_max(6)
+        .on_complete([this, alive, host](std::string body, unsigned) {
+            long        done = -1;
+            std::string file;
+            try {
+                const auto json = nlohmann::json::parse(body);
+                const auto p    = json.value("printer", nlohmann::json::object());
+                if (p.contains("done") && p["done"].is_number_integer())
+                    done = p["done"].get<long>();
+                if (p.contains("file") && p["file"].is_string())
+                    file = p["file"].get<std::string>();
+            } catch (const std::exception&) {}
+            wxGetApp().CallAfter([this, alive, host, done, file]() {
+                if (!alive.lock())
+                    return;
+                m_watching = false;
+                on_printer_status(host, done, file);
+            });
+        })
+        .on_error([this, alive](std::string, std::string, unsigned) {
+            wxGetApp().CallAfter([this, alive]() {
+                if (alive.lock())
+                    m_watching = false;
+            });
+        })
+        .perform();
+}
+
+void PrinterPage::on_printer_status(const std::string& host, long done, const std::string& file)
+{
+    if (done < 0) // a Wi-Fi module before 1.0.21 doesn't count
+        return;
+    // First answer, another printer, or the module restarted (its count starts again at 0): only remember the count
+    if (m_done_seen < 0 || host != m_done_host || done < m_done_seen) {
+        m_done_seen = done;
+        m_done_host = host;
+        return;
+    }
+    if (done == m_done_seen)
+        return;
+    m_done_seen = done;
+
+    const wxString title = _L("Print finished");
+    const wxString text  = file.empty() ? _L("Your Escaloplab printer finished printing.") :
+                                          format_wxstr(_L("Your Escaloplab printer finished %1%."), from_u8(file));
+    wxNotificationMessage note(title, text, wxGetApp().mainframe);
+    note.Show(wxNotificationMessage::Timeout_Auto);
+    if (wxGetApp().mainframe)
+        wxGetApp().mainframe->RequestUserAttention(wxUSER_ATTENTION_INFO);
+    if (Plater* plater = wxGetApp().plater())
+        if (NotificationManager* nm = plater->get_notification_manager())
+            nm->push_notification(into_u8(text)); // a regular notification that fades after 10 s
+}
 
 void PrinterPage::build_find_page()
 {

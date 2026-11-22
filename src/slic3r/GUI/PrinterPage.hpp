@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <wx/panel.h>
+#include <wx/timer.h>
 
 class Button;
 class Label;
@@ -64,6 +65,10 @@ private:
     void start_search();
     void connect(const std::string& host);
     void on_page_error();
+    // Every 15 s, even when the tab isn't open: asks the connected printer how many prints it finished, and tells the
+    // user (a Windows/macOS notification and one in the app) when that goes up
+    void watch_printer();
+    void on_printer_status(const std::string& host, long done, const std::string& file);
 
     std::shared_ptr<int> m_alive = std::make_shared<int>(0);
     Section              m_section = Section::Find;
@@ -86,6 +91,11 @@ private:
     std::vector<Found>       m_found;
     wxString                 m_problem;  // why the page is shown ("can't reach ...")
     wxString                 m_url;      // the printer's page, as last loaded
+
+    wxTimer     m_watch;
+    bool        m_watching  = false; // a status request is on its way
+    long        m_done_seen = -1;    // the printer's count of finished prints when last asked; -1 = not yet
+    std::string m_done_host;         // ... for this address
 };
 
 } // namespace GUI

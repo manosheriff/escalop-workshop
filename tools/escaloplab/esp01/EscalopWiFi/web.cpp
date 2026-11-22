@@ -213,6 +213,21 @@ void handleStatus()
     JsonArray b = p["bed"].to<JsonArray>();
     b.add(t.at ? t.bed : 0);
     b.add(t.bedTarget);
+    // Nozzle position for the control page: asked every few seconds while someone looks at it, not while printing
+    const Marlin::Position& pos = Marlin::position();
+    if (pos.at && elapsed(pos.at) < 30 * SECONDS) {
+        JsonArray xyz = p["pos"].to<JsonArray>();
+        xyz.add(pos.x);
+        xyz.add(pos.y);
+        xyz.add(pos.z);
+    } else {
+        p["pos"] = nullptr;
+    }
+    static uint32_t lastAsk = 0;
+    if (Marlin::protocol() && !printing() && elapsed(lastAsk) > 3 * SECONDS) {
+        lastAsk = millis();
+        Marlin::send("M114");
+    }
 
     JsonObject w = doc["wifi"].to<JsonObject>();
     w["ssid"]    = Net::ssid();
@@ -312,13 +327,29 @@ void handleControl()
         Marlin::send("G91");
         Marlin::send("G1 " + axis + String(d, 2) + " F" + String(feed));
         Marlin::send("G90");
+        Marlin::send("M114");
+    }
+    else if (a == "corner") { // bed leveling with a sheet of paper: 0.2 mm above a corner or the center
+        const long spot = server.arg("spot").toInt();
+        if (spot < 0 || spot > 4) return sendError(400, "Bad spot");
+        // Bed size from the firmware variant: 300 bed = 290 printable, else 210 (Marlin repo escaloplab/variants)
+        const float bed = Marlin::info().variant.startsWith("300") ? 290 : 210, in = 25;
+        const float xs[5] = {in, bed - in, bed - in, in, bed / 2}, ys[5] = {in, in, bed - in, bed - in, bed / 2};
+        Marlin::send("G28 O"); // home only if the position isn't known
+        Marlin::send("G90");
+        Marlin::send("G1 Z5 F600");
+        Marlin::send("G1 X" + String(xs[spot], 1) + " Y" + String(ys[spot], 1) + " F4000");
+        Marlin::send("G1 Z0.2 F300");
+        Marlin::send("M114");
     }
     else if (a == "home") {
         const String axes = server.arg("axes"); // "" = all, else some of X, Y, Z
         String cmd = "G28";
         for (const char c : {'X', 'Y', 'Z'})
             if (axes.indexOf(c) >= 0) cmd += String(' ') + c;
+        if (cmd.length() == 3) cmd = "G28"; // all
         Marlin::send(cmd);
+        Marlin::send("M114");
     }
     else if (a == "motors_off") Marlin::send("M84");
     else if (a == "preheat_pla") { Marlin::send("M104 S205"); Marlin::send("M140 S60"); }

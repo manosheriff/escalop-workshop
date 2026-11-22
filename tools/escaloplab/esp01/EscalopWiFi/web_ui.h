@@ -2,62 +2,101 @@
 
 #include <Arduino.h>
 
-// The module's web pages, in Escaloplab's look (escaloplab.com: neon pink #FF2E8A, Tektur headings,
-// light #F4F4F6 / dark #111217). Tektur loads from Google Fonts when the phone has internet; otherwise the
+#include "config.h" // WIFI_VERSION: the stylesheet's address changes with each version, so browsers never mix old and new
+
+// The module's web pages, in escaloplab.com's look (its globals.css: blue-black #111217 with a matte grain, neon pink
+// #FF2E8A, Tektur headings, 28 px panels, round buttons; light theme with ?theme=light). Tektur loads from Google Fonts when the phone has internet; otherwise the
 // system font is used (the setup hotspot has no internet).
 
 static const char APP_CSS[] PROGMEM = R"CSS(
-:root{--bg:#f4f4f6;--surface:#fff;--fg:#111217;--muted:#595b67;--line:#e3e3e8;--rose:#ff2e8a;--rose-ink:#c70f62;--ok:#1f9d55;--bad:#d92d20;color-scheme:light}
-@media (prefers-color-scheme:dark){:root{--bg:#111217;--surface:#17181e;--fg:#f2f2f5;--muted:#a9abb8;--line:#2a2b33;--rose-ink:#ff5ca3;color-scheme:dark}}
-*{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-h1,h2,.brand{font-family:Tektur,system-ui,sans-serif;letter-spacing:.01em;margin:0}
-h1{font-size:22px;line-height:1.15}
-h2{font-size:17px;margin-bottom:10px}
-.wrap{max-width:720px;margin:0 auto;padding:16px}
-header{display:flex;align-items:center;gap:12px;padding:8px 0 16px}
+:root{--bg:#111217;--surface:#17181e;--s2:#1e1f26;--s3:#282a32;--fg:#f2f2f5;--muted:#a9abb8;--line:rgb(255 255 255/.06);--rose:#ff2e8a;--rose-ink:#ff5ca3;--cer:#2a9df4;--ok:#35c26b;--bad:#ff5a4f;--r:28px;--rs:16px;--glow:0 0 14px rgb(255 46 138/.24);--ease:cubic-bezier(.22,1,.36,1);color-scheme:dark}
+html.light{--bg:#f4f4f6;--surface:#fff;--s2:#ebebef;--s3:#dfdfe5;--fg:#111217;--muted:#595b67;--line:rgb(17 18 23/.07);--rose-ink:#c70f62;--ok:#1f9d55;--bad:#d92d20;color-scheme:light}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{background:var(--bg);-webkit-text-size-adjust:100%}
+body{margin:0;color:var(--fg);font:16px/1.55 Geist,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.05;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+h1,h2,h3,.brand,.num{font-family:Tektur,system-ui,sans-serif;letter-spacing:-.02em;margin:0}
+h1{font-size:clamp(1.6rem,3vw,2.4rem);line-height:1.05}
+h2{font-size:clamp(1.15rem,1.6vw,1.45rem);line-height:1.15;margin-bottom:16px}
+h3{font-size:1rem;color:var(--muted);font-weight:500;margin:22px 0 10px}
+.wrap{max-width:1600px;margin:0 auto;padding:clamp(16px,3.2vw,40px)}
+header{display:flex;align-items:center;gap:14px;padding-bottom:clamp(16px,2.4vw,28px)}
 header .grow{flex:1;min-width:0}
-.sub{color:var(--muted);font-size:13px}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:18px;margin-bottom:14px}
+.sub{color:var(--muted);font-size:.875rem}
+.grid{display:flex;flex-direction:column;gap:clamp(14px,1.6vw,22px)}
+.grid .card{margin:0}
+.colL,.colR{display:contents}
+.o1{order:1}.o2{order:2}.o3{order:3}.o4{order:4}.o5{order:5}.o6{order:6}
+@media (min-width:1000px){.grid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);align-items:start}
+ .colL,.colR{display:flex;flex-direction:column;gap:clamp(14px,1.6vw,22px)}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:clamp(20px,2.2vw,32px);margin-bottom:16px}
 .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .row .grow{flex:1;min-width:0}
-.pill{display:inline-block;border-radius:999px;padding:2px 10px;font-size:12px;font-weight:600;border:1px solid var(--line);color:var(--muted)}
-.pill.on{color:var(--ok);border-color:currentColor}.pill.off{color:var(--bad);border-color:currentColor}.pill.rose{color:var(--rose-ink);border-color:currentColor}
-button,.btn{font:inherit;font-weight:600;border:0;border-radius:999px;padding:9px 16px;cursor:pointer;background:var(--rose);color:#fff;text-decoration:none;display:inline-block}
-button.ghost,.btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--line)}
-button.danger{background:transparent;color:var(--bad);border:1px solid currentColor}
-button:disabled{opacity:.45;cursor:default}
-button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--rose);outline-offset:2px}
-input[type=text],input[type=password]{font:inherit;width:100%;padding:10px 14px;border-radius:14px;border:1px solid var(--line);background:var(--bg);color:var(--fg)}
-label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
-.temps{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
-.temp{background:var(--bg);border-radius:14px;padding:10px 12px}
-.temp b{font-family:Tektur,system-ui,sans-serif;font-size:22px}
-.jog{display:grid;grid-template-columns:repeat(3,56px) 24px 56px;grid-template-rows:repeat(3,48px);gap:8px;margin:10px 0}
-.jog button{padding:0;font-weight:700}
-.seg button.sel{background:var(--rose);color:#fff;border-color:var(--rose)}
-.set input{width:84px}
-.bar{height:8px;border-radius:99px;background:var(--line);overflow:hidden;margin:10px 0}
-.bar i{display:block;height:100%;width:0;background:var(--rose);transition:width .4s}
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 12px;font-size:.8rem;font-weight:600;background:var(--s2);color:var(--muted)}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.pill.on{color:var(--ok)}.pill.off{color:var(--bad)}.pill.rose{color:var(--rose-ink)}
+button,.btn{font:600 .95rem Tektur,system-ui,sans-serif;border:0;border-radius:999px;min-height:46px;padding:0 1.3em;cursor:pointer;background:var(--rose);color:#fff;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:.5em;white-space:nowrap;user-select:none;transition:transform .2s var(--ease),box-shadow .3s var(--ease),background-color .2s}
+button:hover:not(:disabled){box-shadow:var(--glow)}
+button:active:not(:disabled){transform:scale(.96)}
+button.ghost,.btn.ghost{background:var(--s2);color:var(--fg)}
+button.ghost:hover:not(:disabled){background:var(--s3);box-shadow:none}
+button.danger{background:var(--s2);color:var(--bad)}
+button.danger:hover:not(:disabled){box-shadow:none;background:var(--s3)}
+button:disabled{opacity:.4;cursor:default}
+button svg{width:22px;height:22px;flex:none}
+:focus-visible{outline:2px solid var(--rose);outline-offset:3px}
+input[type=text],input[type=password],input[type=number]{font:inherit;font-size:max(16px,1em);width:100%;min-height:46px;padding:0 16px;border-radius:var(--rs);border:1px solid var(--line);background:var(--s2);color:var(--fg)}
+input[type=file]{font:inherit;color:var(--muted)}
+input[type=file]::file-selector-button{font:600 .95rem Tektur,system-ui,sans-serif;border:0;border-radius:999px;min-height:46px;padding:0 1.3em;margin-right:14px;background:var(--s2);color:var(--fg);cursor:pointer}
+input[type=range]{accent-color:var(--rose)}
+label{display:block;font-size:.875rem;color:var(--muted);margin:12px 0 6px}
+.bar{height:8px;border-radius:99px;background:var(--s3);overflow:hidden;margin:12px 0}
+.bar i{display:block;height:100%;width:0;background:var(--rose);transition:width .4s var(--ease)}
 ul.list{list-style:none;margin:0;padding:0}
-ul.list li{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+ul.list li{display:flex;align-items:center;gap:10px;padding:12px 0;border-top:1px solid var(--line)}
 ul.list li:first-child{border-top:0}
 ul.list .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-ul.list li.folder{color:var(--muted);font-size:14px;padding-top:14px}
-ul.list li.infolder{padding-left:22px}
-.net{cursor:pointer;border-radius:12px;padding:10px 8px!important}
-.net.sel{background:var(--bg);outline:2px solid var(--rose)}
-.msg{padding:10px 14px;border-radius:14px;background:var(--bg);margin-top:12px}
+ul.list li.folder{color:var(--muted);font-size:.9rem;padding-top:16px}
+ul.list li.infolder{padding-left:24px}
+ul.list button{min-height:38px;padding:0 1em;font-size:.85rem}
+.net{cursor:pointer;border-radius:var(--rs);padding:12px!important}
+.net.sel{background:var(--s2);outline:2px solid var(--rose)}
+.msg{padding:12px 16px;border-radius:var(--rs);background:var(--s2);margin-top:14px}
 .msg.bad{color:var(--bad)}.msg.ok{color:var(--ok)}
 .hidden{display:none!important}
-small,.small{font-size:13px;color:var(--muted)}
+small,.small{font-size:.875rem;color:var(--muted)}
 a{color:var(--rose-ink)}
 footer{text-align:center;padding:8px 0 24px}
-@media (min-width:900px){.cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}.cards .card{margin-bottom:0}}
-.embed .wrap{max-width:none;padding:20px 28px}
+/* Printer status */
+.state{font-family:Tektur,system-ui,sans-serif;font-size:clamp(1.6rem,2.6vw,2.2rem);line-height:1.1}
+/* Manual control */
+.ctl{display:flex;flex-wrap:wrap;gap:clamp(18px,2.4vw,36px);align-items:flex-start}
+.pad{display:grid;grid-template-columns:repeat(3,68px);grid-template-rows:repeat(3,68px);gap:10px}
+.col{display:grid;grid-template-rows:repeat(3,68px);gap:10px;justify-items:center}
+.key{width:68px;height:68px;min-height:0;padding:0;border-radius:22px;background:var(--s2);color:var(--fg);flex-direction:column;gap:0;font-size:.72rem}
+.key:hover:not(:disabled){background:var(--s3);box-shadow:none}
+.key.home{background:var(--rose);color:#fff}
+.key.home:hover:not(:disabled){background:var(--rose);box-shadow:var(--glow)}
+.axis{font-size:.75rem;color:var(--muted);text-align:center;margin-top:8px;font-family:Tektur,system-ui,sans-serif}
+.seg{display:inline-flex;background:var(--s2);border-radius:999px;padding:4px;gap:2px}
+.seg button{background:transparent;color:var(--muted);min-height:38px;padding:0 1em}
+.seg button:hover:not(:disabled){box-shadow:none;color:var(--fg)}
+.seg button.sel{background:var(--rose);color:#fff}
+.pos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:18px 0 4px}
+.pos div,.heater{background:var(--s2);border-radius:var(--rs);padding:12px 16px}
+.pos .num{font-size:1.4rem}
+.heaters{display:grid;gap:12px}
+.heater{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.heater .num{font-size:2.2rem;line-height:1.1}
+.heater .tgt{color:var(--muted);font-size:.9rem}
+.heater .grow{flex:1;min-width:120px}
+.heater input{width:92px;flex:none;background:var(--surface)}
+.heater button{background:var(--s3);min-height:44px;padding:0 1.1em}
+.heater button:hover:not(:disabled){background:var(--rose);color:#fff}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips button{min-height:38px;padding:0 1em;font-size:.85rem}
+.embed .wrap{max-width:none;padding:clamp(16px,2vw,28px)}
 .embed header{display:none}
-.embed footer{text-align:left;padding-top:16px}
 )CSS";
 
 // Three neon chevrons, as on escaloplab.com
@@ -71,11 +110,19 @@ footer{text-align:center;padding:8px 0 24px}
 
 #define PAGE_HEAD(title) \
     "<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'>" \
-    "<title>" title "</title><link rel='stylesheet' href='/app.css'>" \
-    "<link rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Tektur:wght@500;700&display=swap'></head><body><div class='wrap'>"
+    "<title>" title "</title><link rel='stylesheet' href='/app.css?v=" WIFI_VERSION "'>" \
+    "<link rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Tektur:wght@500;600;700&family=Geist:wght@400;600&display=swap'></head><body><div class='wrap'>"
 
 // ---------------------------------------------------------------------------------------------------------------
 // Setup page, shown through the setup hotspot
+
+// Small line icons for the control pad (24 x 24, current color)
+#define ICON_PATH(d) "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><path d='" d "'/></svg>"
+#define ICON_UP    ICON_PATH("M6 15l6-6 6 6")
+#define ICON_DOWN  ICON_PATH("M6 9l6 6 6-6")
+#define ICON_LEFT  ICON_PATH("M15 6l-6 6 6 6")
+#define ICON_RIGHT ICON_PATH("M9 6l6 6-6 6")
+#define ICON_HOME  ICON_PATH("M4 11l8-7 8 7M6 10v9h12v-9")
 
 static const char PAGE_SETUP[] PROGMEM = PAGE_HEAD("Wi-Fi setup") R"HTML(
 <header>)HTML" LOGO_SVG R"HTML(<div class="grow"><h1>Wi-Fi setup</h1><div class="sub">Escaloplab v80</div></div></header>
@@ -135,80 +182,105 @@ scan();
 static const char PAGE_MAIN[] PROGMEM = PAGE_HEAD("Escaloplab v80") R"HTML(
 <header>)HTML" LOGO_SVG R"HTML(<div class="grow"><h1>Escaloplab v80</h1><div class="sub" id="serial"></div></div><span class="pill" id="conn">...</span></header>
 
-<div class="cards">
-<div class="card">
-  <div class="row"><h2 class="grow" id="state" style="margin:0">Printer</h2><span class="pill" id="sdPill"></span></div>
+<div class="grid">
+<div class="colL">
+<div class="card o1">
+  <div class="row"><span class="small grow">Printer</span><span class="pill" id="sdPill"></span></div>
+  <div class="state" id="state" style="margin:6px 0 4px">Printer</div>
   <div id="job" class="hidden"><div class="small" id="jobName"></div><div class="bar"><i id="jobBar"></i></div></div>
-  <div class="temps"><div class="temp"><div class="small">Nozzle</div><b id="tH">-</b> <span class="small" id="tHt"></span></div>
-  <div class="temp"><div class="small">Bed</div><b id="tB">-</b> <span class="small" id="tBt"></span></div></div>
-  <div class="row" id="printCtl"><button class="ghost" data-a="pause">Pause</button><button class="ghost" data-a="resume">Resume</button><button class="danger" data-a="cancel" data-q="Stop this print?">Stop print</button></div>
-  <div class="row" id="idleCtl"><button class="ghost" data-a="preheat_pla">Preheat PLA</button><button class="ghost" data-a="preheat_petg">Preheat PETG</button><button class="ghost" data-a="cooldown">Cool down</button><button class="ghost" data-a="home">Home</button><button class="ghost" data-a="restart" data-q="Restart the printer?">Restart printer</button></div>
+  <div class="row" id="printCtl" style="margin-top:14px"><button class="ghost" data-a="pause">Pause</button><button class="ghost" data-a="resume">Resume</button><button class="danger" data-a="cancel" data-q="Stop this print?">Stop print</button></div>
+  <div class="row" style="margin-top:14px"><button class="ghost" data-a="restart" data-q="Restart the printer?">Restart printer</button></div>
 </div>
 
-<div class="card">
-  <h2>Print files</h2>
-  <div class="row"><input type="file" id="file" accept=".gcode,.gco,.g" class="grow"><label style="margin:0"><input type="checkbox" id="startNow" checked> Print after upload</label></div>
-  <div class="row" style="margin-top:10px"><button id="upBtn">Send to printer</button><span class="small" id="upInfo"></span></div>
-  <div class="bar hidden" id="upBarBox"><i id="upBar"></i></div>
-  <div class="msg hidden" id="upMsg"></div>
-  <h2 style="margin-top:16px">On the SD card</h2>
-  <ul class="list" id="files"><li class="small">Loading...</li></ul>
-  <div class="row" style="margin-top:8px"><button class="ghost" id="reload">Refresh</button></div>
+<div class="card o3">
+  <h2>Temperature</h2>
+  <div class="heaters">
+    <div class="heater"><div class="grow"><div class="small">Nozzle</div><span class="num" id="tH">-</span> <span class="tgt" id="tHt"></span></div>
+      <div class="row"><input type="number" id="setH" min="0" max="260" step="5" placeholder="&deg;C"><button class="ghost" data-t="hotend">Set</button><button class="ghost" data-t0="hotend">Off</button></div></div>
+    <div class="heater"><div class="grow"><div class="small">Bed</div><span class="num" id="tB">-</span> <span class="tgt" id="tBt"></span></div>
+      <div class="row"><input type="number" id="setB" min="0" max="110" step="5" placeholder="&deg;C"><button class="ghost" data-t="bed">Set</button><button class="ghost" data-t0="bed">Off</button></div></div>
+  </div>
+  <h3>Preheat</h3>
+  <div class="chips"><button class="ghost pre" data-h="205" data-b="60">PLA 205 / 60</button><button class="ghost pre" data-h="235" data-b="80">PETG 235 / 80</button><button class="ghost pre" data-h="250" data-b="100">ABS 250 / 100</button><button class="ghost pre" data-h="225" data-b="50">TPU 225 / 50</button><button class="danger pre" data-h="0" data-b="0">Cool down</button></div>
+  <h3>Part cooling fan</h3>
+  <div class="row"><input type="range" id="fan" min="0" max="100" step="10" value="0" class="grow"><span class="num" id="fanV" style="min-width:56px;text-align:right">0%</span></div>
 </div>
 
-<div class="card">
+<div class="card o5">
   <h2>Firmware</h2>
   <div class="small">Printer: <b id="fw">-</b> &middot; Wi-Fi module: <b id="wv">-</b></div>
   <div class="msg" id="upd">Updates are checked every day.</div>
   <div class="bar hidden" id="updBarBox"><i id="updBar"></i></div>
-  <div class="row" style="margin-top:10px"><button class="ghost" id="chk">Check for updates</button><button id="inst" class="hidden">Install update</button></div>
+  <div class="row" style="margin-top:14px"><button class="ghost" id="chk">Check for updates</button><button id="inst" class="hidden">Install update</button></div>
 </div>
 
-<div class="card">
+</div>
+<div class="colR">
+<div class="card o2" id="ctl">
+  <div class="row" style="margin-bottom:16px"><h2 class="grow" style="margin:0">Move</h2><div class="seg" id="steps"><button data-s="0.1">0.1</button><button class="sel" data-s="1">1</button><button data-s="10">10</button><button data-s="50">50 mm</button></div></div>
+  <div class="small" id="ctlNote"></div>
+  <div class="ctl">
+    <div><div class="pad">
+      <span></span><button class="key mv" data-x="Y" data-d="1" title="Y+">)HTML" ICON_UP R"HTML(Y+</button><span></span>
+      <button class="key mv" data-x="X" data-d="-1" title="X-">)HTML" ICON_LEFT R"HTML(X&minus;</button><button class="key home hm" data-h="XY" title="Home X and Y">)HTML" ICON_HOME R"HTML(XY</button><button class="key mv" data-x="X" data-d="1" title="X+">)HTML" ICON_RIGHT R"HTML(X+</button>
+      <span></span><button class="key mv" data-x="Y" data-d="-1" title="Y-">)HTML" ICON_DOWN R"HTML(Y&minus;</button><span></span>
+    </div><div class="axis">X / Y</div></div>
+    <div><div class="col">
+      <button class="key mv" data-x="Z" data-d="1" title="Z up">)HTML" ICON_UP R"HTML(Z+</button><button class="key home hm" data-h="Z" title="Home Z">)HTML" ICON_HOME R"HTML(Z</button><button class="key mv" data-x="Z" data-d="-1" title="Z down">)HTML" ICON_DOWN R"HTML(Z&minus;</button>
+    </div><div class="axis">Z</div></div>
+    <div><div class="col">
+      <button class="key ex" data-e="-1" title="Retract">)HTML" ICON_UP R"HTML(Retract</button><span class="small" style="align-self:center" id="eLen">10 mm</span><button class="key ex" data-e="1" title="Extrude">)HTML" ICON_DOWN R"HTML(Extrude</button>
+    </div><div class="axis">Extruder</div></div>
+  </div>
+  <div class="pos"><div><div class="small">X</div><span class="num" id="pX">-</span></div><div><div class="small">Y</div><span class="num" id="pY">-</span></div><div><div class="small">Z</div><span class="num" id="pZ">-</span></div></div>
+  <h3>Homing</h3>
+  <div class="row"><button class="hm" data-h="">)HTML" ICON_HOME R"HTML(Home all</button><button class="ghost hm" data-h="X">Home X</button><button class="ghost hm" data-h="Y">Home Y</button><button class="ghost hm" data-h="Z">Home Z</button><button class="ghost mo" id="motorsOff">Motors off</button></div>
+  <h3>Bed leveling (paper test)</h3>
+  <div class="chips"><button class="ghost cn" data-c="0">Front left</button><button class="ghost cn" data-c="1">Front right</button><button class="ghost cn" data-c="2">Back right</button><button class="ghost cn" data-c="3">Back left</button><button class="ghost cn" data-c="4">Center</button></div>
+  <div class="small" style="margin-top:8px">The nozzle goes 0.2 mm above that spot. Slide a sheet of paper under it and turn the bed knob until it drags slightly.</div>
+</div>
+
+<div class="card o4">
+  <h2>Print files</h2>
+  <div class="row"><input type="file" id="file" accept=".gcode,.gco,.g" class="grow"><label style="margin:0"><input type="checkbox" id="startNow" checked> Print after upload</label></div>
+  <div class="row" style="margin-top:12px"><button id="upBtn">Send to printer</button><span class="small" id="upInfo"></span></div>
+  <div class="bar hidden" id="upBarBox"><i id="upBar"></i></div>
+  <div class="msg hidden" id="upMsg"></div>
+  <div class="row" style="margin-top:22px"><h3 class="grow" style="margin:0">On the SD card</h3><button class="ghost" id="reload" style="min-height:38px">Refresh</button></div>
+  <ul class="list" id="files"><li class="small">Loading...</li></ul>
+</div>
+
+<div class="card o6">
   <h2>Wi-Fi</h2>
   <div class="small" id="wifi"></div>
   <p class="small">Escalop Workshop finds this printer by itself: open its <b>Printer</b> tab and choose this printer's serial number. Its address is <b id="addr"></b>.</p>
   <div class="row"><button class="danger" id="forget">Forget this Wi-Fi</button></div>
 </div>
 </div>
-<div class="card" id="ctl">
-  <h2>Manual control</h2>
-  <div class="small" id="ctlNote"></div>
-  <div class="row seg" id="steps"><span class="small">Move by</span><button class="ghost" data-s="0.1">0.1</button><button class="ghost sel" data-s="1">1</button><button class="ghost" data-s="10">10</button><button class="ghost" data-s="50">50 mm</button></div>
-  <div class="jog">
-   <span></span><button class="ghost mv" data-x="Y" data-d="1">Y+</button><span></span><span></span><button class="ghost mv" data-x="Z" data-d="1">Z+</button>
-   <button class="ghost mv" data-x="X" data-d="-1">X&minus;</button><button class="ghost hm" data-h="" title="Home all">&#8962;</button><button class="ghost mv" data-x="X" data-d="1">X+</button><span></span><span></span>
-   <span></span><button class="ghost mv" data-x="Y" data-d="-1">Y&minus;</button><span></span><span></span><button class="ghost mv" data-x="Z" data-d="-1">Z&minus;</button>
-  </div>
-  <div class="row"><button class="ghost hm" data-h="X">Home X</button><button class="ghost hm" data-h="Y">Home Y</button><button class="ghost hm" data-h="Z">Home Z</button><button class="ghost mo" id="motorsOff">Motors off</button></div>
-  <h2 style="margin-top:16px">Heat</h2>
-  <div class="row set"><span class="grow">Nozzle</span><input type="number" id="setH" min="0" max="260" step="5" placeholder="&deg;C"><button class="ghost" data-t="hotend">Set</button><button class="ghost" data-t0="hotend">Off</button></div>
-  <div class="row set" style="margin-top:8px"><span class="grow">Bed</span><input type="number" id="setB" min="0" max="110" step="5" placeholder="&deg;C"><button class="ghost" data-t="bed">Set</button><button class="ghost" data-t0="bed">Off</button></div>
-  <div class="row" style="margin-top:8px"><span class="grow">Part fan</span><input type="range" id="fan" min="0" max="100" step="10" value="0" class="grow"><span class="small" id="fanV">0%</span></div>
-  <h2 style="margin-top:16px">Extruder</h2>
-  <div class="row"><button class="ghost ex" data-e="10">Extrude 10 mm</button><button class="ghost ex" data-e="-10">Retract 10 mm</button></div>
-  <div class="small" style="margin-top:6px">The nozzle must be at 170&deg; or more.</div>
 </div>
 </div>
 <script>
 const $=id=>document.getElementById(id);let st=null,busy=false;
-// Inside Escalop Workshop's Printer tab: its theme color, no own header (?embed=1&accent=RRGGBB)
-(()=>{const q=new URLSearchParams(location.search),a=q.get('accent');if(a&&/^[0-9a-fA-F]{6}$/.test(a)){const r=document.documentElement.style;r.setProperty('--rose','#'+a);r.setProperty('--rose-ink','#'+a)}
+// Like escaloplab.com: dark unless ?theme=light. Inside Escalop Workshop: its theme color, no header (?embed=1&accent=RRGGBB)
+(()=>{const q=new URLSearchParams(location.search),a=q.get('accent');if(q.get('theme')==='light')document.documentElement.classList.add('light');
+ if(a&&/^[0-9a-fA-F]{6}$/.test(a)){const r=document.documentElement.style;r.setProperty('--rose','#'+a);r.setProperty('--rose-ink','#'+a)}
  if(q.get('embed'))document.body.classList.add('embed')})();
 function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
 function t(v){return v==null?'-':Math.round(v)+'&deg;'}
+function mm(v){return v==null?'-':v.toFixed(v>=100||v<=-100?1:2)}
 async function post(url,data){const r=await fetch(url,{method:'POST',body:new URLSearchParams(data||{})});const x=await r.text();if(!r.ok)throw new Error(x||r.status);return x}
 async function refresh(){try{st=await(await fetch('/api/status')).json();render()}catch(e){$('conn').textContent='Offline';$('conn').className='pill off'}}
 function render(){const p=st.printer,u=st.update;
  $('serial').textContent=st.module.serial?'Serial '+st.module.serial:'';
  $('conn').textContent=p.online?'Online':'No printer';$('conn').className='pill '+(p.online?'on':'off');
- let s=!p.online?'Printer not answering':p.printing?(p.paused?'Paused':'Printing'):p.busy?'Busy':'Ready';
+ let s=!p.online?'Not answering':p.printing?(p.paused?'Paused':'Printing'):p.busy?'Busy':'Ready';
  if(p.printing&&p.progress!=null)s+=' '+p.progress+'%';$('state').textContent=s;
- $('sdPill').textContent=p.sd?'SD card in':'No SD card';$('sdPill').className='pill '+(p.sd?'':'off');
+ $('sdPill').textContent=p.sd?'SD card in':'No SD card';$('sdPill').className='pill '+(p.sd?'on':'off');
  $('job').classList.toggle('hidden',!p.printing);$('jobName').textContent=p.file||'';$('jobBar').style.width=(p.progress||0)+'%';
- $('tH').innerHTML=t(p.hotend[0]);$('tHt').innerHTML=p.hotend[1]?'/ '+t(p.hotend[1]):'';
- $('tB').innerHTML=t(p.bed[0]);$('tBt').innerHTML=p.bed[1]?'/ '+t(p.bed[1]):'';
- $('printCtl').classList.toggle('hidden',!p.printing);$('idleCtl').classList.toggle('hidden',p.printing||!p.online);
+ $('tH').innerHTML=t(p.hotend[0]);$('tHt').innerHTML=p.hotend[1]?'&rarr; '+t(p.hotend[1]):'off';
+ $('tB').innerHTML=t(p.bed[0]);$('tBt').innerHTML=p.bed[1]?'&rarr; '+t(p.bed[1]):'off';
+ const ps=p.pos;$('pX').textContent=ps?mm(ps[0]):'-';$('pY').textContent=ps?mm(ps[1]):'-';$('pZ').textContent=ps?mm(ps[2]):'-';
+ $('printCtl').classList.toggle('hidden',!p.printing);
  document.querySelector('[data-a=pause]').classList.toggle('hidden',p.paused);document.querySelector('[data-a=resume]').classList.toggle('hidden',!p.paused);
  $('fw').textContent=p.fw||'unknown';$('wv').textContent=st.module.version;
  let m='Up to date. Updates are checked every day.';
@@ -222,8 +294,8 @@ function render(){const p=st.printer,u=st.update;
  $('addr').textContent=w.host+'.local';
  $('upBtn').disabled=busy||!p.online||p.printing;
  // Moving is off while printing; heat and fan still work (like on the printer's screen)
- document.querySelectorAll('#ctl .mv,#ctl .hm,#ctl .mo,#ctl .ex').forEach(b=>b.disabled=!p.online||p.printing);
- document.querySelectorAll('#ctl [data-t],#ctl [data-t0]').forEach(b=>b.disabled=!p.online);$('fan').disabled=!p.online;
+ document.querySelectorAll('#ctl button:not(.seg button)').forEach(b=>b.disabled=!p.online||p.printing);
+ document.querySelectorAll('[data-t],[data-t0],.pre').forEach(b=>b.disabled=!p.online);$('fan').disabled=!p.online;
  $('ctlNote').textContent=!p.online?'The printer isn\'t answering.':p.printing?'Moving is off while printing.':''}
 async function files(){try{const r=await(await fetch('/api/files')).json();const ul=$('files');ul.innerHTML='';
  if(!r.files.length){ul.innerHTML='<li class="small">'+(r.error?esc(r.error):'No print files on the card.')+'</li>';return}
@@ -233,7 +305,7 @@ async function files(){try{const r=await(await fetch('/api/files')).json();const
  Object.keys(groups).sort().forEach(dir=>{if(dir){const h=document.createElement('li');h.className='folder';h.innerHTML='&#128193; <b></b>';
   h.querySelector('b').textContent=dir;ul.appendChild(h)}
   groups[dir].forEach(f=>{const li=document.createElement('li');if(dir)li.className='infolder';
-  li.innerHTML='<span class="name"></span><span class="small">'+(f.size/1048576).toFixed(1)+' MB</span><button class="ghost">Print</button><button class="danger">Delete</button>';
+  li.innerHTML='<span class="name"></span><span class="small">'+(f.size/1048576).toFixed(1)+' MB</span><button>Print</button><button class="danger">Delete</button>';
   li.querySelector('.name').textContent=f.title;const b=li.querySelectorAll('button');
   b[0].onclick=()=>post('/api/job',{action:'print',name:f.name}).then(refresh).catch(e=>alert(e.message));
   b[1].onclick=()=>{if(confirm('Delete '+f.title+'?'))post('/api/job',{action:'delete',name:f.name}).then(files).catch(e=>alert(e.message))};ul.appendChild(li)})})}catch(e){}}
@@ -241,14 +313,18 @@ document.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>{if(b.dataset.q&&
 $('reload').onclick=files;
 // Manual control
 let step=1;const ctl=(d)=>post('/api/control',d).then(refresh).catch(e=>alert(e.message));
-document.querySelectorAll('#steps [data-s]').forEach(b=>b.onclick=()=>{step=+b.dataset.s;document.querySelectorAll('#steps [data-s]').forEach(x=>x.classList.toggle('sel',x===b))});
+const eLen=()=>Math.min(Math.max(step,1),50);
+document.querySelectorAll('#steps [data-s]').forEach(b=>b.onclick=()=>{step=+b.dataset.s;document.querySelectorAll('#steps [data-s]').forEach(x=>x.classList.toggle('sel',x===b));$('eLen').textContent=eLen()+' mm'});
+$('eLen').textContent=eLen()+' mm';
 document.querySelectorAll('.mv').forEach(b=>b.onclick=()=>ctl({action:'jog',axis:b.dataset.x,dist:(+b.dataset.d)*step}));
+document.querySelectorAll('.ex').forEach(b=>b.onclick=()=>ctl({action:'jog',axis:'E',dist:(+b.dataset.e)*eLen()}));
 document.querySelectorAll('.hm').forEach(b=>b.onclick=()=>ctl({action:'home',axes:b.dataset.h}));
+document.querySelectorAll('.cn').forEach(b=>b.onclick=()=>ctl({action:'corner',spot:b.dataset.c}));
 $('motorsOff').onclick=()=>ctl({action:'motors_off'});
 document.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{const v=$(b.dataset.t==='bed'?'setB':'setH').value;if(v!=='')ctl({action:'temp',tool:b.dataset.t,target:v})});
 document.querySelectorAll('[data-t0]').forEach(b=>b.onclick=()=>ctl({action:'temp',tool:b.dataset.t0,target:0}));
+document.querySelectorAll('.pre').forEach(b=>b.onclick=()=>ctl({action:'temp',tool:'hotend',target:b.dataset.h}).then(()=>ctl({action:'temp',tool:'bed',target:b.dataset.b})));
 $('fan').oninput=()=>{$('fanV').textContent=$('fan').value+'%'};$('fan').onchange=()=>ctl({action:'fan',speed:$('fan').value});
-document.querySelectorAll('.ex').forEach(b=>b.onclick=()=>ctl({action:'jog',axis:'E',dist:b.dataset.e}));
 $('chk').onclick=()=>post('/api/update/check').then(()=>{$('upd').textContent='Checking. The Wi-Fi module restarts for this; the page is back in about 30 seconds.'});
 $('inst').onclick=()=>{if(confirm('Install the new printer firmware now? The printer restarts.'))post('/api/update/install').then(refresh).catch(e=>alert(e.message))};
 $('forget').onclick=()=>{if(confirm('Forget this Wi-Fi? The printer turns its setup hotspot on.'))post('/api/wifi/forget')};

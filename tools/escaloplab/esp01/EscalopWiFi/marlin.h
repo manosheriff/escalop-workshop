@@ -26,6 +26,12 @@ struct Temps
     uint32_t at     = 0;
 };
 
+struct Position
+{
+    float    x = 0, y = 0, z = 0;
+    uint32_t at = 0; // millis() of the last M114 answer; 0 = none yet
+};
+
 struct SdProgress
 {
     bool     printing = false;
@@ -43,6 +49,7 @@ struct FileEntry
 const Info&       info();
 const Temps&      temps();
 const SdProgress& sdProgress();
+const Position&   position(); // from M114 answers (ask with send("M114"))
 bool              protocol();       // the firmware speaks PROTOCOL.md (sent an INFO at least once)
 bool              alive();          // any output from Marlin in the last 30 s
 uint32_t          lastBoot();       // millis() when Marlin last said it started (0 = not seen)

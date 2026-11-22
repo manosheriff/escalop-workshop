@@ -13,6 +13,7 @@ constexpr uint32_t BUSY_TIMEOUT   = 60 * SECONDS; // while Marlin says "busy: pr
 
 Info       g_info;
 Temps      g_temps;
+Position   g_pos;
 SdProgress g_sd;
 bool       g_protocol  = false;
 uint32_t   g_lastLine  = 0;
@@ -128,7 +129,7 @@ bool knownLine(const char* s)
 {
     static const char* const prefixes[] = {"ok", "//", "echo:", "T:", " T:", "SD ", "Not SD", "Done printing", "Begin file list",
                                            "End file list", "start", "FIRMWARE_NAME", "Cap:", "Error:", "Resend:", "File ",
-                                           "Writing to file", "Done saving", "Now fresh file", "busy:"};
+                                           "Writing to file", "Done saving", "Now fresh file", "busy:", "X:"};
     for (const char* p : prefixes)
         if (startsWith(s, p)) return true;
     return false;
@@ -164,6 +165,13 @@ void handleLine(const char* s)
     }
     if (startsWith(s, "T:") || startsWith(s, " T:")) {
         parseTemps(s);
+        return;
+    }
+    if (startsWith(s, "X:") && strstr(s, " Y:") && strstr(s, " Z:") && strstr(s, "Count")) { // M114
+        g_pos.x  = strtof(s + 2, nullptr);
+        g_pos.y  = strtof(strstr(s, " Y:") + 3, nullptr);
+        g_pos.z  = strtof(strstr(s, " Z:") + 3, nullptr);
+        g_pos.at = millis();
         return;
     }
     if (startsWith(s, "SD printing byte ")) {
@@ -224,6 +232,7 @@ bool quiet() { return g_quietUntil && int32_t(millis() - g_quietUntil) < 0; }
 const Info&       info() { return g_info; }
 const Temps&      temps() { return g_temps; }
 const SdProgress& sdProgress() { return g_sd; }
+const Position&   position() { return g_pos; }
 bool              protocol() { return g_protocol; }
 bool              alive() { return g_lastLine != 0 && elapsed(g_lastLine) < 30 * SECONDS; }
 uint32_t          lastBoot() { return g_lastBoot; }

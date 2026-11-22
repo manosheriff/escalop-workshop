@@ -35,6 +35,12 @@ public:
     ~PrinterPage() override;
 
     PrinterWebView* web_view() const { return m_web_view; }
+
+    // Puts the connected printer's address (app config "escalop_printer_host") into every Escaloplab printer preset in
+    // memory, the built-in ones too: those can't be saved, and the printer should work with them, not only with a
+    // "- Copy". User presets keep an address of their own (anything but `previous`, the address before this one).
+    // Called whenever presets are (re)loaded and when a printer is connected.
+    static void apply_saved_host(const std::string& previous = {});
     FirmwarePanel*  firmware() const { return m_firmware; }
 
     // The printer's address changed (MainFrame's EVT_LOAD_PRINTER_URL): show its page, or look for printers

@@ -221,20 +221,72 @@ void PrinterPage::start_search()
                     .lookup();
 }
 
-// Saves the address in the printer profile (like the physical printer dialog does) and opens its page
-void PrinterPage::connect(const std::string& host)
+namespace {
+bool is_escaloplab(const Preset& p)
 {
-    PresetBundle& bundle = *wxGetApp().preset_bundle;
-    DynamicPrintConfig& cfg = bundle.printers.get_edited_preset().config;
+    const auto* model = p.config.option<ConfigOptionString>("printer_model");
+    return model && boost::starts_with(model->value, "Escaloplab");
+}
+
+void set_host(DynamicPrintConfig& cfg, const std::string& host)
+{
     cfg.set_key_value("host_type", new ConfigOptionEnum<PrintHostType>(htOctoPrint)); // the module speaks OctoPrint's upload API
     cfg.set_key_value("print_host", new ConfigOptionString(host));
     cfg.set_key_value("print_host_webui", new ConfigOptionString(""));
+}
+} // namespace
 
-    Tab*          tab    = wxGetApp().get_tab(Preset::TYPE_PRINTER);
-    const Preset& sel    = tab->get_presets()->get_selected_preset();
-    std::string   suffix = _CTX_utf8(L_CONTEXT("Copy", "PresetName"), "PresetName");
-    std::string   name   = sel.is_default ? "Untitled" : sel.is_system ? sel.name + " - " + suffix : sel.name;
-    tab->save_preset("", false, false, true, name);
+void PrinterPage::apply_saved_host(const std::string& previous)
+{
+    GUI_App& app = wxGetApp();
+    if (!app.app_config || !app.preset_bundle)
+        return;
+    PresetCollection& printers = app.preset_bundle->printers;
+    std::string       host     = app.app_config->get("escalop_printer_host");
+    if (host.empty()) {
+        // Before 1.3.5 the address went into a "- Copy" of the preset: adopt it from there
+        for (size_t i = 0; i < printers.size() && host.empty(); ++i) {
+            const Preset& p = printers.preset(i);
+            if (!p.is_system && is_escaloplab(p))
+                if (const auto* opt = p.config.option<ConfigOptionString>("print_host"); opt && !opt->value.empty())
+                    host = opt->value;
+        }
+        if (host.empty())
+            return;
+        app.app_config->set("escalop_printer_host", host);
+    }
+    const auto apply = [&](Preset& p) {
+        if (!is_escaloplab(p))
+            return;
+        const auto*       opt = p.config.option<ConfigOptionString>("print_host");
+        const std::string cur = opt ? opt->value : std::string();
+        if (p.is_system || cur.empty() || cur == previous || cur == host)
+            set_host(p.config, host);
+    };
+    for (size_t i = 0; i < printers.size(); ++i)
+        apply(printers.preset(i));
+    apply(printers.get_edited_preset()); // the same change on both sides: the preset doesn't look modified
+}
+
+// Remembers the address for all Escaloplab printer presets (the built-in ones too) and opens the printer's page
+void PrinterPage::connect(const std::string& host)
+{
+    GUI_App& app = wxGetApp();
+    Tab*     tab = app.get_tab(Preset::TYPE_PRINTER);
+    if (is_escaloplab(app.preset_bundle->printers.get_edited_preset())) {
+        const std::string previous = app.app_config->get("escalop_printer_host");
+        app.app_config->set("escalop_printer_host", host);
+        apply_saved_host(previous);
+        if (tab)
+            tab->reload_config();
+    } else {
+        // Another brand's preset: save the address in it, like the physical printer dialog does
+        set_host(app.preset_bundle->printers.get_edited_preset().config, host);
+        const Preset& sel    = tab->get_presets()->get_selected_preset();
+        std::string   suffix = _CTX_utf8(L_CONTEXT("Copy", "PresetName"), "PresetName");
+        std::string   name   = sel.is_default ? "Untitled" : sel.is_system ? sel.name + " - " + suffix : sel.name;
+        tab->save_preset("", false, false, true, name);
+    }
     wxGetApp().CallAfter([]() { wxGetApp().switch_printer_agent(); });
 
     m_problem.clear();

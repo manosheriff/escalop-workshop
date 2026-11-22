@@ -92,6 +92,7 @@
 #include "../Utils/PrintHost.hpp"
 #include "../Utils/Process.hpp"
 #include "EscalopTheme.hpp" // Escaloplab: theme color
+#include "PrinterPage.hpp"
 #include "../Utils/MacDarkMode.hpp"
 #include "../Utils/Http.hpp"
 #include "../Utils/InstanceID.hpp"
@@ -8520,6 +8521,7 @@ void GUI_App::load_current_presets(bool active_preset_combox/*= false*/, bool ch
     // and create physical printer from it, if any exists
     if (check_printer_presets_)
         check_printer_presets();
+    PrinterPage::apply_saved_host(); // Escaloplab: the connected printer works with the built-in v80 presets
 
     auto& edited_printer_preset = preset_bundle->printers.get_edited_preset();
     PrinterTechnology printer_technology = edited_printer_preset.printer_technology();

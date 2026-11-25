@@ -19,6 +19,9 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/log/trivial.hpp>
 
+#include <nlohmann/json.hpp>
+#include <openssl/sha.h>
+
 #include <wx/app.h>
 #include <wx/msgdlg.h>
 
@@ -42,6 +45,7 @@
 #include "slic3r/GUI/MarkdownTip.hpp"
 #include "libslic3r/miniz_extension.hpp"
 #include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/MainFrame.hpp"
 
 namespace fs = boost::filesystem;
 using Slic3r::GUI::Config::Index;
@@ -57,6 +61,10 @@ namespace Slic3r {
 
 static const char *INDEX_FILENAME = "index.idx";
 static const char *TMP_EXTENSION = ".data";
+
+// Escaloplab: the vendors whose profiles update without a new app version (see tools/escaloplab/publish_profiles.py)
+static const std::vector<std::string> ESCALOP_VENDORS = {"OrcaFilamentLibrary", "Escaloplab"};
+static const char *ESCALOP_PROFILES_URL = "https://raw.githubusercontent.com/manosheriff/escalop-workshop/profiles/profiles.json";
 
 
 void copy_file_fix(const fs::path &source, const fs::path &target)
@@ -229,6 +237,14 @@ struct PresetUpdater::priv
 	void parse_version_string(const std::string& body) const;
     void sync_resources(std::string http_url, std::map<std::string, Resource> &resources, bool check_patch = false,  std::string current_version="", std::string changelog_file="");
     void sync_vendor_config(const std::string& vendor_id);
+    // Escaloplab: newer printer, print and filament profiles are downloaded, checked and staged in ota/escalop, and
+    // installed silently: right away when nothing is open or unsaved, otherwise at the next start
+    void sync_escalop_profiles();
+    bool unzip_escalop_profiles(const std::string &zip, const fs::path &dir) const;
+    bool validate_escalop_profiles(const fs::path &dir) const;
+    bool escalop_profiles_newer(const fs::path &dir, const std::string &vendor) const;
+    bool install_escalop_profiles() const;
+    void apply_escalop_profiles_now() const;
     void sync_tooltip(std::string http_url, std::string language);
     void sync_plugins(std::string http_url, std::string plugin_version);
     void sync_printer_config(std::string http_url);
@@ -255,6 +271,7 @@ PresetUpdater::priv::priv()
 	set_download_prefs(GUI::wxGetApp().app_config);
 	// Install indicies from resources. Only installs those that are either missing or older than in resources.
 	check_installed_vendor_profiles();
+	install_escalop_profiles(); // Escaloplab: downloaded by an earlier run
     perform_updates(get_printer_config_updates(), false);
 	// Load indices from the cache directory.
 	//index_db = Index::load_db();
@@ -749,6 +766,199 @@ void PresetUpdater::priv::sync_vendor_config(const std::string& vendor_id)
     });
 }
 
+bool PresetUpdater::priv::escalop_profiles_newer(const fs::path &dir, const std::string &vendor) const
+{
+    const fs::path staged    = dir / (vendor + ".json");
+    const fs::path installed = vendor_path / (vendor + ".json");
+    if (!fs::exists(staged) || !fs::exists(installed) || !fs::is_directory(dir / vendor))
+        return false;
+    const Semver sv = get_version_from_json(staged.string());
+    const Semver iv = get_version_from_json(installed.string());
+    // Another major.minor than the app's would be replaced by the app's own profiles at the next start
+    return sv.maj() == iv.maj() && sv.min() == iv.min() && iv < sv;
+}
+
+// Not extract_file(): miniz opens files with ANSI names, which fails in a user folder with other letters (Arabic)
+bool PresetUpdater::priv::unzip_escalop_profiles(const std::string &zip, const fs::path &dir) const
+{
+    mz_zip_archive archive;
+    mz_zip_zero_struct(&archive);
+    if (!mz_zip_reader_init_mem(&archive, zip.data(), zip.size(), 0))
+        return false;
+    bool ok = true;
+    for (mz_uint i = 0; ok && i < mz_zip_reader_get_num_files(&archive); ++i) {
+        mz_zip_archive_file_stat stat;
+        ok = mz_zip_reader_file_stat(&archive, i, &stat);
+        if (!ok || stat.m_is_directory)
+            continue;
+        const std::string name = stat.m_filename;
+        ok = name.find("..") == std::string::npos && name.find(':') == std::string::npos && name.find('\\') == std::string::npos &&
+             name.front() != '/' && boost::iends_with(name, ".json");
+        if (!ok)
+            break;
+        size_t size = 0;
+        void  *data = mz_zip_reader_extract_to_heap(&archive, i, &size, 0);
+        ok          = data != nullptr;
+        if (ok) {
+            const fs::path target = dir / name;
+            fs::create_directories(target.parent_path());
+            fs::ofstream f(target, std::ios::binary | std::ios::trunc);
+            f.write(static_cast<const char *>(data), size);
+            ok = f.good();
+            mz_free(data);
+        }
+    }
+    mz_zip_reader_end(&archive);
+    return ok;
+}
+
+// Loads the profiles like the app does at start: a damaged or too new set is never installed
+bool PresetUpdater::priv::validate_escalop_profiles(const fs::path &dir) const
+{
+    try {
+        PresetBundle library, vendor;
+        library.load_vendor_configs_from_json(dir.string(), PresetBundle::ORCA_FILAMENT_LIBRARY, PresetBundle::LoadSystem,
+                                              ForwardCompatibilitySubstitutionRule::Disable);
+        vendor.load_vendor_configs_from_json(dir.string(), "Escaloplab", PresetBundle::LoadSystem,
+                                             ForwardCompatibilitySubstitutionRule::Disable, &library);
+        const auto has_system = [](const PresetCollection &presets) {
+            return std::any_of(presets.begin(), presets.end(), [](const Preset &p) { return p.is_system; });
+        };
+        return has_system(library.filaments) && has_system(vendor.printers) && has_system(vendor.prints);
+    } catch (const std::exception &e) {
+        BOOST_LOG_TRIVIAL(error) << "[Escalop profiles] not valid: " << e.what();
+        return false;
+    }
+}
+
+void PresetUpdater::priv::sync_escalop_profiles()
+{
+    const auto check_cancel = [this](Http::Progress, bool &cancel_http) { cancel_http = cancel; };
+    const auto fetch        = [&](const std::string &url) {
+        std::string out;
+        Http::get(url)
+            .timeout_connect(5)
+            .timeout_max(60)
+            .on_progress(check_cancel)
+            .on_error([&](std::string, std::string error, unsigned status) {
+                BOOST_LOG_TRIVIAL(warning) << "[Escalop profiles] " << url << ": " << error << ", HTTP " << status;
+            })
+            .on_complete([&](std::string body, unsigned status) {
+                if (status == 200)
+                    out = std::move(body);
+            })
+            .perform_sync();
+        return out;
+    };
+
+    // The app config can point to another list, to try profiles before they are published
+    const std::string override_url = GUI::wxGetApp().app_config->get("escalop_profiles_url");
+    const std::string manifest     = fetch(override_url.empty() ? ESCALOP_PROFILES_URL : override_url);
+    if (cancel || manifest.empty())
+        return;
+    const nlohmann::json j = nlohmann::json::parse(manifest);
+
+    const auto min_app = Semver::parse(j.at("min_app").get<std::string>());
+    const auto app     = Semver::parse(ESCALOP_VERSION);
+    if (!min_app || !app || *app < *min_app) {
+        BOOST_LOG_TRIVIAL(info) << "[Escalop profiles] these need a newer app";
+        return;
+    }
+    bool wanted = false;
+    for (const std::string &vendor : ESCALOP_VENDORS) {
+        const auto     online    = Semver::parse(j.at("vendors").at(vendor).get<std::string>());
+        const fs::path installed = vendor_path / (vendor + ".json");
+        if (online && fs::exists(installed)) {
+            const Semver iv = get_version_from_json(installed.string());
+            wanted |= online->maj() == iv.maj() && online->min() == iv.min() && iv < *online;
+        }
+    }
+    if (!wanted)
+        return;
+
+    const std::string zip = fetch(j.at("url").get<std::string>());
+    if (cancel || zip.empty())
+        return;
+    unsigned char digest[SHA256_DIGEST_LENGTH];
+    SHA256(reinterpret_cast<const unsigned char *>(zip.data()), zip.size(), digest);
+    std::string hex;
+    for (unsigned char c : digest)
+        hex += (boost::format("%02x") % int(c)).str();
+    if (hex != j.at("sha256").get<std::string>()) {
+        BOOST_LOG_TRIVIAL(error) << "[Escalop profiles] the download is damaged";
+        return;
+    }
+
+    const fs::path tmp    = cache_path / "escalop_tmp";
+    const fs::path staged = cache_path / "escalop";
+    fs::remove_all(tmp);
+    fs::create_directories(tmp);
+    if (!unzip_escalop_profiles(zip, tmp) || !validate_escalop_profiles(tmp) || cancel) {
+        fs::remove_all(tmp);
+        return;
+    }
+    fs::remove_all(staged);
+    fs::rename(tmp, staged);
+    BOOST_LOG_TRIVIAL(info) << "[Escalop profiles] new profiles are ready";
+    if (cancel)
+        return;
+    GUI::wxGetApp().CallAfter([]() {
+        if (PresetUpdater *updater = GUI::wxGetApp().get_preset_updater())
+            updater->apply_escalop_profiles_now();
+    });
+}
+
+// Copies staged profiles to the system folder; true if something changed
+bool PresetUpdater::priv::install_escalop_profiles() const
+{
+    const fs::path staged = cache_path / "escalop";
+    boost::system::error_code ec;
+    if (!fs::is_directory(staged, ec))
+        return false;
+    bool changed = false;
+    for (const std::string &vendor : ESCALOP_VENDORS) {
+        try {
+            if (!escalop_profiles_newer(staged, vendor))
+                continue;
+            // The version file last: if this is interrupted, the next start does it again
+            copy_directory_recursively(staged / vendor, vendor_path / vendor);
+            copy_file_fix(staged / (vendor + ".json"), vendor_path / (vendor + ".json"));
+            BOOST_LOG_TRIVIAL(info) << "[Escalop profiles] " << vendor << " updated";
+            changed = true;
+        } catch (const std::exception &e) {
+            BOOST_LOG_TRIVIAL(error) << "[Escalop profiles] " << vendor << ": " << e.what() << "; back to the app's own";
+            install_bundles_rsrc({vendor}, false);
+            changed = true;
+        }
+    }
+    fs::remove_all(staged, ec);
+    return changed;
+}
+
+void PresetUpdater::priv::apply_escalop_profiles_now() const
+{
+    GUI::GUI_App &app = GUI::wxGetApp();
+    // Work in progress or an open dialog: the next start installs them
+    if (!app.mainframe || !app.mainframe->IsEnabled() || !app.plater() || !app.plater()->model().objects.empty() ||
+        app.has_current_preset_changes())
+        return;
+    app.preset_bundle->export_selections(*app.app_config); // keep what is selected now
+    if (!install_escalop_profiles())
+        return;
+    app.preset_bundle->load_presets(*app.app_config, ForwardCompatibilitySubstitutionRule::EnableSilentDisableSystem);
+    app.load_current_presets();
+    app.plater()->set_bed_shape();
+}
+
+void PresetUpdater::apply_escalop_profiles_now()
+{
+    try {
+        p->apply_escalop_profiles_now();
+    } catch (const std::exception &e) {
+        BOOST_LOG_TRIVIAL(error) << "[Escalop profiles] " << e.what();
+    }
+}
+
 void PresetUpdater::priv::sync_tooltip(std::string http_url, std::string language)
 {
     try {
@@ -1074,8 +1284,12 @@ void PresetUpdater::priv::check_installed_vendor_profiles() const
     const auto enabled_vendors = app_config->vendors();
 
     std::set<std::string> bundles;
-    // Orca: always install filament library
-    bundles.insert(PresetBundle::ORCA_FILAMENT_LIBRARY);
+    // Escaloplab: the filament library is installed when it is missing or older than the app's. OrcaSlicer copies it at
+    // every start, which would undo a profile update.
+    const std::string library = PresetBundle::ORCA_FILAMENT_LIBRARY;
+    if (!fs::exists(vendor_path / (library + ".json")) || !fs::exists(vendor_path / library) ||
+        get_version_from_json((vendor_path / (library + ".json")).string()) < get_version_from_json((rsrc_path / (library + ".json")).string()))
+        bundles.insert(library);
     for (auto &dir_entry : boost::filesystem::directory_iterator(rsrc_path)) {
         const auto &path = dir_entry.path();
         std::string file_path = path.string();
@@ -1084,7 +1298,7 @@ void PresetUpdater::priv::check_installed_vendor_profiles() const
             std::string vendor_name = path.filename().string();
             // Remove the .json suffix.
             vendor_name.erase(vendor_name.size() - 5);
-            if (bundles.find(vendor_name) != bundles.end())continue;
+            if (vendor_name == library || bundles.find(vendor_name) != bundles.end())continue;
 
             const auto is_vendor_enabled = (vendor_name == PresetBundle::ORCA_DEFAULT_BUNDLE) // always update configs from resource to vendor for ORCA_DEFAULT_BUNDLE
                                            || (enabled_vendors.find(vendor_name) != enabled_vendors.end());
@@ -1349,29 +1563,20 @@ void PresetUpdater::sync(std::string http_url, std::string language, std::string
 	// into the closure (but perhaps the compiler can elide this).
     VendorMap vendors = preset_bundle ? preset_bundle->vendors : VendorMap{};
 
-    // Determine active vendor before entering the thread
-    std::string active_vendor;
-    if (preset_bundle) {
-        const Preset& printer = preset_bundle->printers.get_edited_preset();
-        if (printer.vendor)
-            active_vendor = printer.vendor->id;
-    }
-
-	p->thread = std::thread([this, vendors, active_vendor, http_url, language, plugin_version]() {
+	p->thread = std::thread([this, vendors, http_url, language, plugin_version]() {
 		this->p->prune_tmps();
 		if (p->cancel)
 			return;
 		this->p->sync_version();
 		if (p->cancel)
 			return;
-        // Per-vendor config check for the active vendor at startup
-        if (!active_vendor.empty() && !vendors.empty()) {
-            this->p->sync_vendor_config(active_vendor);
-            if (p->cancel)
-                return;
-            {
-                std::lock_guard<std::mutex> lock(this->p->vendor_check_mutex);
-                this->p->checked_vendors.insert(active_vendor);
+        // Escaloplab: our own profile updates instead of OrcaSlicer's server, which doesn't know these printers.
+        // No vendors = "Update built-in presets automatically" is off.
+        if (!vendors.empty()) {
+            try {
+                this->p->sync_escalop_profiles();
+            } catch (const std::exception &e) {
+                BOOST_LOG_TRIVIAL(error) << "[Escalop profiles] update failed: " << e.what();
             }
         }
 		if (p->cancel)

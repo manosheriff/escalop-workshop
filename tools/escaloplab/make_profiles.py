@@ -28,7 +28,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "resources" / "profiles"
 VENDOR = "Escaloplab"
-VERSION = "01.00.05.00"
+VERSION = "01.00.06.00"  # keep 01.00: a profile update (publish_profiles.py) needs the major.minor the app has
 
 # (model name, bed X, bed Y, height, drive)
 MODELS = [
@@ -124,6 +124,9 @@ def machine_common():
     mk3s = prusa("machine", PRUSA_PRINTER)
     return {
         **{k: mk3s[k] for k in PRUSA_MACHINE_KEYS},
+        # The slicer sends these to the printer: Z as in the v80 firmware (the MK3S has 12 mm/s and 300)
+        "machine_max_speed_z": ["5", "5"],
+        "machine_max_acceleration_z": ["100", "100"],
         "type": "machine",
         "name": "fdm_machine_common",
         "from": "system",

@@ -59,6 +59,8 @@ public:
 	void on_update_notification_confirm();
     void do_printer_config_update();
 	void check_vendor_update(const std::string& vendor_id);
+	// Escaloplab: installs downloaded profiles unless something is open or unsaved (then the next start does)
+	void apply_escalop_profiles_now();
 
 	bool version_check_enabled() const;
 

@@ -87,8 +87,11 @@ struct Secure
     BearSSL::X509List         anchors;
     BearSSL::WiFiClientSecure client;
 
-    explicit Secure(const char* root) : anchors(root)
+    // rx: receive buffer size; 0 = BearSSL's full 16.7 KB (needed for big downloads). Small answers (remote printing's
+    // checks, a few hundred bytes) work with less, which is what lets them run while the web server is up.
+    explicit Secure(const char* root, uint16_t rx = 0) : anchors(root)
     {
+        if (rx) client.setBufferSizes(rx, 512);
         client.setTrustAnchors(&anchors);
         const time_t now = time(nullptr);
         client.setX509Time(now >= VALID_TIME ? now : buildTime());
@@ -105,10 +108,10 @@ uint32_t g_pausedUntil = 0; // after a crash during a secure connection: no inte
 struct Session
 {
     std::unique_ptr<Secure> tls;
-    explicit Session(const String& url)
+    explicit Session(const String& url, uint16_t rx = 0)
     {
         setInTls(true);
-        tls.reset(new Secure(rootFor(url)));
+        tls.reset(new Secure(rootFor(url), rx));
         logf("tls: %s, heap %lu, block %lu", url.substring(8, 40).c_str(), (unsigned long)ESP.getFreeHeap(),
              (unsigned long)ESP.getMaxFreeBlockSize());
     }
@@ -363,11 +366,11 @@ bool download(const String& urlIn, const std::function<bool(const uint8_t*, size
     return false;
 }
 
-bool postJson(const String& url, const String& body, JsonDocument& answer, int& status, String& error)
+bool postJson(const String& url, const String& body, JsonDocument& answer, int& status, String& error, uint16_t rxBuffer)
 {
     status = 0;
     if (!ready(error)) return false;
-    Session    session(url);
+    Session    session(url, rxBuffer);
     HTTPClient http;
     prepare(http);
     if (!http.begin(session.tls->client, url)) {

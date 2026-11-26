@@ -9,7 +9,13 @@
 
 namespace Remote {
 
+// Boot task (EscalopWiFi.ino): a print is waiting. Downloading it needs a full-size secure connection, which only
+// fits right after a restart, before the web server starts; the regular checks use a small one.
+constexpr uint32_t BOOT_TASK = 8;
+
 void loop();
+// Right after a restart for BOOT_TASK (Wi-Fi connected, web server not started yet): fetch and start the print
+void atStartup();
 
 // For the printer's web page
 const char* stateName(); // "off", "waiting", "unlinked", "linked", "printing", "low_memory", "error"

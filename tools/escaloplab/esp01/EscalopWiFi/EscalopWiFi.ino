@@ -193,6 +193,7 @@ void runInternetTasks(uint32_t tasks)
     for (int i = 0; i < 3 && !Marlin::info().fw.length(); ++i) Marlin::requestInfo(2000);
     if (tasks & TASK_CHECKIN) checkin();
     if (tasks & TASK_UPDATES) Updates::checkAtStartup(tasks & TASK_FROM_PRINTER);
+    if (tasks & Remote::BOOT_TASK) Remote::atStartup();
 }
 
 // Restarts to run internet tasks (not in the middle of an upload or a firmware install)

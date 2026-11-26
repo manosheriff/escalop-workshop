@@ -113,16 +113,39 @@ void showOnPrinter(const String& text)
     if (Marlin::protocol() && !printing()) Marlin::send("M117 " + text);
 }
 
-void rememberJob(const String& id)
+void rememberJob(const String& id, const String& file = String())
 {
     strlcpy(settings.remoteJob, id.c_str(), sizeof(settings.remoteJob));
+    strlcpy(settings.remoteFile, file.c_str(), sizeof(settings.remoteFile));
     settingsSave();
+}
+
+// Website prints don't stay on the card: delete the file once the print is over (or never got going)
+void deleteFile(const String& name)
+{
+    if (!name.length()) return;
+    for (int i = 0; i < 3 && !Marlin::protocol(); ++i) Marlin::requestInfo(2000);
+    Marlin::send("M30 " + name);
+    logf("remote: deleted %s from the SD card", name.c_str());
+}
+
+// The failure as a short code the website shows in the customer's language ("code: details")
+String failureFor(const String& error)
+{
+    if (error.indexOf("SD card couldn't") >= 0 || error.indexOf("couldn't create the file") >= 0 ||
+        error.indexOf("incomplete") >= 0)
+        return "sd_write: " + error;
+    if (error.indexOf("Insert the SD card") >= 0) return "sd_missing: " + error;
+    if (error.indexOf("stopped answering") >= 0 || error.indexOf("didn't answer") >= 0) return "printer_restarted: " + error;
+    if (error.indexOf("busy") >= 0) return "printer_busy: " + error;
+    return "download: " + (error.length() ? error : String("The download failed"));
 }
 
 void finishJob(const char* event, const String& error = String())
 {
     if (!g_job.length()) return;
     sendEvent(g_job, event, error);
+    deleteFile(g_jobFile);
     g_job = "";
     g_jobFile = "";
     rememberJob("");
@@ -133,8 +156,12 @@ void runJob(const String& id, const String& url, uint32_t size, const String& ti
 {
     if (!Marlin::requestInfo(2500)) return; // the printer isn't answering: try again at the next check
     if (!Marlin::info().sd) {
-        Marlin::send("M9108 NOSD");
-        return; // the job waits until a card is in
+        static uint32_t told = 0;
+        if (!told || elapsed(told) > 2 * MINUTES) { // the printer's screen says "insert the SD card"
+            told = millis();
+            Marlin::send("M9108 NOSD");
+        }
+        return; // the job waits until a card is in (the website shows "No SD card")
     }
     if (printing() || Marlin::info().busy) return;
     if (!sendEvent(id, "sending")) return;
@@ -154,7 +181,13 @@ void runJob(const String& id, const String& url, uint32_t size, const String& ti
     g_busy = false;
     if (!ok) {
         logf("remote: job %s failed: %s", id.substring(0, 8).c_str(), error.c_str());
-        sendEvent(id, "failed", error.length() ? error : String("The download failed"));
+        const String why = failureFor(error);
+        sendEvent(id, "failed", why);
+        if (why.startsWith("sd_write")) {
+            showOnPrinter("SD card error: format it");
+            delay(300);
+        }
+        deleteFile(name); // a half-written (or empty) file is useless
         return;
     }
     logf("remote: %s on the SD card in %lu s, starting", name.c_str(), (unsigned long)(elapsed(t0) / 1000));
@@ -164,7 +197,7 @@ void runJob(const String& id, const String& url, uint32_t size, const String& ti
     g_doneBefore   = Marlin::printsDone();
     g_seenPrinting = false;
     g_reported     = false;
-    rememberJob(id); // before anything else can go wrong: a restart keeps watching it
+    rememberJob(id, name); // before anything else can go wrong: a restart keeps watching it
     // Start it and make sure it started (the printer may still be closing the file): up to 3 tries
     bool started = false;
     for (int attempt = 0; attempt < 3 && !started; ++attempt) {
@@ -314,6 +347,7 @@ void loop()
         restored = true;
         if (validId(settings.remoteJob)) {
             g_job          = settings.remoteJob;
+            g_jobFile      = settings.remoteFile;
             g_jobStarted   = millis();
             g_doneBefore   = Marlin::printsDone();
             g_seenPrinting = false;

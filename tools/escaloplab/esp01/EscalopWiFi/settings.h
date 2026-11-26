@@ -33,6 +33,10 @@ struct Settings
     // power-on soon after skips them and the web page is up in seconds. tasksMagic tells whether it was ever written.
     uint32_t tasksMagic;
     uint32_t tasksAt;
+
+    // 1.0.26+: the SD card file of the website print being watched, deleted when it ends. fileMagic: ever written?
+    uint32_t fileMagic;
+    char     remoteFile[13];    // 8.3 name, "" = none
 };
 
 extern Settings settings;

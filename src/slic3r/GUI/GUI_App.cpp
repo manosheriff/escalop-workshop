@@ -658,17 +658,47 @@ static void register_win32_device_notification_event()
 #endif // WIN32
 
 #ifdef _WIN32
-// Escaloplab: Escalop Workshop updates itself on Windows, without asking. The new installer downloads
-// in the background while the app is open; once every Escalop Workshop window is closed, a hidden
-// script installs it silently. From 1.3.1 on the app is installed per user (see
-// cmake/modules/NSIS.template.in), so no administrator permission is needed. The next start runs the
-// new version.
-static boost::filesystem::path s_escalop_pending_update;
+// Escaloplab: Escalop Workshop updates itself on Windows. The new installer downloads in the background
+// while the app is open, then the app asks: "Update now" closes it, installs silently and opens it again;
+// "Remind me later" asks again at the next start. From 1.3.1 on the app is installed per user (see
+// cmake/modules/NSIS.template.in), so no administrator permission is needed.
+static boost::filesystem::path s_escalop_pending_update; // accepted: installs when the app closes
+
+static void escalop_ask_update(const boost::filesystem::path& installer, const std::string& version)
+{
+    GUI_App& app = wxGetApp();
+    // Not over another dialog or before the window is up: ask again in a minute
+    if (!app.mainframe || !app.mainframe->IsShown() || !app.mainframe->IsEnabled()) {
+        static std::pair<boost::filesystem::path, std::string> later;
+        static wxTimer *timer = nullptr; // never freed: it must not be destroyed after wxWidgets shuts down
+        if (timer == nullptr) {
+            timer = new wxTimer();
+            timer->Bind(wxEVT_TIMER, [](wxTimerEvent&) { escalop_ask_update(later.first, later.second); });
+        }
+        later = { installer, version };
+        timer->StartOnce(60 * 1000);
+        return;
+    }
+    MessageDialog dlg(app.mainframe,
+                      wxString::Format(_L("Escalop Workshop %s is ready to install.\n\n"
+                                          "Update now closes the app, installs the update and opens it again."),
+                                       wxString::FromUTF8(version)),
+                      _L("New version of Escalop Workshop"), wxYES | wxNO | wxICON_INFORMATION);
+    dlg.SetButtonLabel(wxID_YES, _L("Update now"), true);
+    dlg.SetButtonLabel(wxID_NO, _L("Remind me later"));
+    if (dlg.ShowModal() != wxID_YES) {
+        BOOST_LOG_TRIVIAL(info) << "Update: " << version << " postponed to the next start";
+        return;
+    }
+    BOOST_LOG_TRIVIAL(info) << "Update: " << version << " installs now";
+    s_escalop_pending_update = installer;
+    app.mainframe->Close(false); // asks about an unsaved project; if the user stays, it installs when the app closes
+}
 
 static void escalop_update_ready(const boost::filesystem::path& installer, const std::string& version)
 {
-    BOOST_LOG_TRIVIAL(info) << "Update: " << version << " is downloaded and installs when the app closes";
-    s_escalop_pending_update = installer;
+    BOOST_LOG_TRIVIAL(info) << "Update: " << version << " is downloaded";
+    escalop_ask_update(installer, version);
 }
 
 // Called when the app exits
@@ -679,9 +709,10 @@ static void escalop_install_pending_update()
     boost::system::error_code ec;
     if (installer.empty() || !fs::exists(installer, ec))
         return;
-    // The installer itself waits (hidden) until this app has closed, then installs silently. Nothing else is
-    // started: no script, so no console window can ever appear. The file is cleaned up on the next start.
-    std::wstring        cmd = L"\"" + installer.wstring() + L"\" /S";
+    // The installer itself waits (hidden) until this app has closed, then installs silently and opens the new
+    // version (/RESTART). Nothing else is started: no script, so no console window can ever appear. The file is
+    // cleaned up on the next start.
+    std::wstring        cmd = L"\"" + installer.wstring() + L"\" /S /RESTART";
     STARTUPINFOW        si  = {};
     PROCESS_INFORMATION pi  = {};
     si.cb = sizeof(si);

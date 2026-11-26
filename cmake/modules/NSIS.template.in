@@ -53,6 +53,7 @@
 @CPACK_NSIS_CRC_CHECK_CODE@
 
   !include Sections.nsh
+  !include FileFunc.nsh
 
 ;--- Component support macros: ---
 ; The code for the add/remove functionality is from:
@@ -907,6 +908,15 @@ SectionEnd
 ; first visible page and sets up $INSTDIR properly...
 ; Choose different default installation folder based on SV_ALLUSERS...
 ; "Program Files" for AllUsers, "My Documents" for JustMe...
+
+; Escalop Workshop: the app's "Update now" runs this installer with /S /RESTART: open the new version when done
+Function .onInstSuccess
+  ${GetParameters} $R0
+  ClearErrors
+  ${GetOptions} $R0 "/RESTART" $R1
+  IfErrors +2 0
+    Exec '"$INSTDIR\orca-slicer.exe"'
+FunctionEnd
 
 Function .onInit
   ; Escalop Workshop: always for the current user

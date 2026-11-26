@@ -1,6 +1,6 @@
 # Escalop Workshop: packs the Apple-chip (arm64) Mac app of an earlier build run into a .dmg, for when GitHub has no
 # Intel Mac runner for the universal build. To use: set RUN_ID (the escalop_build.yml run) and VERSION, push to escalop.
-# The .dmg comes out as the artifact EscalopWorkshop_Mac_arm64; attach it to the release by hand.
+# The .dmg comes out as the artifact EscalopWorkshop_Mac_arm64_<runner>; attach it to the release by hand.
 name: Escalop Workshop Apple-chip dmg
 
 on:
@@ -20,7 +20,11 @@ permissions:
 
 jobs:
   dmg:
-    runs-on: macos-15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15-intel, macos-14]   # any Mac can make the dmg; two pools in case one has no free runner
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/download-artifact@v8
         with:
@@ -43,5 +47,5 @@ jobs:
 
       - uses: actions/upload-artifact@v7
         with:
-          name: EscalopWorkshop_Mac_arm64
+          name: EscalopWorkshop_Mac_arm64_${{ matrix.os }}
           path: EscalopWorkshop_Mac_AppleChip_V*.dmg

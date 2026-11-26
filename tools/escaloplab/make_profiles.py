@@ -12,7 +12,7 @@ equivalents. The Bowden version keeps a longer retraction, which a Bowden tube
 needs. Filaments: Patron and Lynx (PLA, PETG, TPU, ABS) first, added to the
 OrcaFilamentLibrary with generic settings, then OrcaSlicer's generic ones.
 The see-through printer (<model>_frame.stl) comes from the website's 3D model:
-    node tools/escaloplab/frame.mjs <v80.glb> resources/profiles/Escaloplab/escaloplab_v80_frame.stl 80000
+    node frame.mjs ../../public/models/v80.glb <workshop>/resources/profiles/Escaloplab/escaloplab_v80_frame.stl 80000
 (run from the website's tools/model folder, which has the glTF packages).
 
 Run from the repo root:

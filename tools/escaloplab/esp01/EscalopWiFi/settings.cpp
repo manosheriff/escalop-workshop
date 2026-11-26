@@ -8,6 +8,7 @@ namespace {
 constexpr uint32_t MAGIC  = 0x45534331; // "ESC1"; change when Settings changes shape
 constexpr int      OFFSET = 4;          // the magic comes first
 constexpr uint32_t EXT_MAGIC = 0x45585432; // "EXT2": the variant fields after pendingInstall are valid
+constexpr uint32_t REMOTE_MAGIC = 0x524D5431; // "RMT1": remoteToken is valid
 } // namespace
 
 // The EEPROM buffer (512 bytes) is only held while reading or writing, to keep RAM free for HTTPS
@@ -30,11 +31,19 @@ void settingsLoad()
             memset(settings.siteVariant, 0, sizeof(settings.siteVariant));
             memset(settings.stagedVariant, 0, sizeof(settings.stagedVariant));
         }
+        if (settings.remoteMagic != REMOTE_MAGIC) { // saved by a version before 1.0.22
+            settings.remoteMagic = REMOTE_MAGIC;
+            memset(settings.remoteToken, 0, sizeof(settings.remoteToken));
+            memset(settings.remoteJob, 0, sizeof(settings.remoteJob));
+        }
+        settings.remoteToken[sizeof(settings.remoteToken) - 1] = 0;
+        settings.remoteJob[sizeof(settings.remoteJob) - 1]     = 0;
         settings.siteVariant[sizeof(settings.siteVariant) - 1]     = 0;
         settings.stagedVariant[sizeof(settings.stagedVariant) - 1] = 0;
     } else {
         memset(&settings, 0, sizeof(settings));
-        settings.extMagic = EXT_MAGIC;
+        settings.extMagic    = EXT_MAGIC;
+        settings.remoteMagic = REMOTE_MAGIC;
         EEPROM.put(0, MAGIC);
         EEPROM.put(OFFSET, settings);
     }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
+#include <ArduinoJson.h>
 #include <functional>
 
 // Everything that needs the internet: GitHub releases (printer firmware and this module's software) and the
@@ -31,6 +32,10 @@ bool validVariant(const String& name);
 // progress(received, total or -1). False with `error` when anything fails, including `sink` returning false.
 bool download(const String& url, const std::function<bool(const uint8_t*, size_t)>& sink,
               const std::function<void(uint32_t, int32_t)>& progress, String& error);
+
+// POSTs JSON to escaloplab.com (device header included) and reads the JSON answer. False only on network problems;
+// `status` is the HTTP status (the answer may be an error).
+bool postJson(const String& url, const String& body, JsonDocument& answer, int& status, String& error);
 
 // What escaloplab.com answers to a check-in (PROTOCOL.md, "Check-in")
 struct Checkin

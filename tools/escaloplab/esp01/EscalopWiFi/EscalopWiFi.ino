@@ -6,6 +6,7 @@
 //  - Fast printing over Wi-Fi: Escalop Workshop uploads like to OctoPrint; the file goes straight onto the SD card
 //  - The printer's web page: status, temperatures, files, updates
 //  - Updates itself from GitHub; gets its serial number from escaloplab.com
+//  - Remote printing: prints sent from a phone on models.escaloplab.com download straight onto the SD card
 //
 // How it talks to Marlin: ../PROTOCOL.md. Wiring and first installation: ../README.md.
 // Arduino IDE: board "Generic ESP8266 Module", Flash size "1MB (FS:none OTA:~502KB)", Flash mode "DOUT",
@@ -19,6 +20,7 @@
 #include "config.h"
 #include "marlin.h"
 #include "net.h"
+#include "remote.h"
 #include "settings.h"
 #include "transfer.h"
 #include "updates.h"
@@ -276,6 +278,9 @@ void loop()
     if (!Marlin::protocol()) g_attached = false;
 
     if (!Web::uploading()) Updates::loop();
+
+    // Remote printing: report to escaloplab.com, fetch prints sent from a phone
+    if (!Web::uploading()) Remote::loop();
 
     // The KILL button on the printer's screen halts Marlin ("Printer halted, please reset"): restart it
     if (Marlin::takeKillButton()) {

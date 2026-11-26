@@ -67,15 +67,18 @@ bool timeFromHttp()
     return false;
 }
 
-// Which root certificate a host needs: GitHub's own sites use Sectigo/USERTrust, everything else (release
-// downloads on githubusercontent.com, escaloplab.com) Let's Encrypt. One root per connection saves memory.
+// Which root certificate a host needs: GitHub's own sites use Sectigo/USERTrust, Supabase (print files for remote
+// printing) Google Trust Services, everything else (release downloads on githubusercontent.com, escaloplab.com)
+// Let's Encrypt. One root per connection saves memory.
 const char* rootFor(const String& url)
 {
     const int start = url.indexOf("://") + 3;
     int       end   = url.indexOf('/', start);
     if (end < 0) end = url.length();
     const String host = url.substring(start, end);
-    return host == "github.com" || host.endsWith(".github.com") ? ROOT_GITHUB : ROOT_LETSENCRYPT;
+    if (host == "github.com" || host.endsWith(".github.com")) return ROOT_GITHUB;
+    if (host.endsWith(".supabase.co")) return ROOT_GTS;
+    return ROOT_LETSENCRYPT;
 }
 
 // A TLS client that trusts one root certificate (certs.h). Made per connection so its memory is freed after.
@@ -358,6 +361,34 @@ bool download(const String& urlIn, const std::function<bool(const uint8_t*, size
     }
     error = "too many redirects";
     return false;
+}
+
+bool postJson(const String& url, const String& body, JsonDocument& answer, int& status, String& error)
+{
+    status = 0;
+    if (!ready(error)) return false;
+    Session    session(url);
+    HTTPClient http;
+    prepare(http);
+    if (!http.begin(session.tls->client, url)) {
+        error = "bad URL";
+        return false;
+    }
+    http.addHeader("Content-Type", "application/json");
+    http.addHeader("X-Escalop-Device", "v1");
+    status = http.POST(body);
+    if (status < 0) {
+        error = failure(*session.tls, status, http);
+        http.end();
+        return false;
+    }
+    const DeserializationError err = deserializeJson(answer, http.getStream());
+    http.end();
+    if (err) {
+        error = String("bad answer: ") + err.c_str();
+        return status != 200; // an error page without JSON is still an answer
+    }
+    return true;
 }
 
 bool checkin(const String& printerFirmware, Checkin& result, String& error)

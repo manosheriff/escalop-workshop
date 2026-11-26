@@ -7,12 +7,13 @@ import os
 import re
 import sys
 
-# One root per site family, and only these two: every root costs RAM while connecting, and the ESP-01 has only
+# One root per site family, and only these three: every root costs RAM while connecting, and the ESP-01 has only
 # ~35 KB free for HTTPS (a connection loads just the root its host needs). If GitHub or Let's Encrypt change their
 # root, regenerate this file and ship a module update (the web page's manual update needs no HTTPS).
 ROOTS = [
     ("ROOT_GITHUB", "USERTrust ECC Certification Authority"),  # github.com, api.github.com (via Sectigo E46)
     ("ROOT_LETSENCRYPT", "ISRG Root X1"),                       # release downloads, escaloplab.com
+    ("ROOT_GTS", "GTS Root R4"),                                # <project>.supabase.co (print files for remote printing)
 ]
 
 

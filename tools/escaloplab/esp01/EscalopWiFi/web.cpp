@@ -9,6 +9,7 @@
 #include "flasher.h"
 #include "marlin.h"
 #include "net.h"
+#include "remote.h"
 #include "settings.h"
 #include "transfer.h"
 #include "updates.h"
@@ -240,7 +241,12 @@ void handleStatus()
     m["version"] = WIFI_VERSION;
     m["serial"]  = settings.serial;
     m["heap"]    = ESP.getFreeHeap();
+    m["block"]   = ESP.getMaxFreeBlockSize(); // largest piece: HTTPS needs ~17 KB in one block
     m["uptime"]  = millis() / 1000;
+
+    JsonObject r = doc["remote"].to<JsonObject>(); // remote printing (models.escaloplab.com)
+    r["state"]   = Remote::stateName();
+    r["code"]    = Remote::pairCode();
 
     JsonObject u   = doc["update"].to<JsonObject>();
     u["state"]     = Updates::stateName();

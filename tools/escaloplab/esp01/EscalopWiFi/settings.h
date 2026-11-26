@@ -22,6 +22,12 @@ struct Settings
     uint8_t  siteVariantSet;    // escaloplab.com said which variant this printer gets (check-in answer)
     char     siteVariant[17];   // that variant; "" = standard
     char     stagedVariant[17]; // variant of the firmware in the staging area; "" = standard
+
+    // Remote printing (1.0.22+): the printer's own token from escaloplab.com, given on its first poll.
+    // remoteMagic tells whether this field was ever written.
+    uint32_t remoteMagic;
+    char     remoteToken[49];   // 48 hex digits; "" = none yet
+    char     remoteJob[37];     // the website print it started and is watching (survives the daily restart)
 };
 
 extern Settings settings;

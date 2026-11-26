@@ -285,7 +285,7 @@ function render(){const p=st.printer,u=st.update;
  $('fw').textContent=p.fw||'unknown';$('wv').textContent=st.module.version;
  let m='Up to date. Updates are checked every day.';
  if(u.state==='checking')m='Checking for updates...';else if(u.state==='downloading')m='Downloading new firmware... '+u.progress+'%';
- else if(u.state==='installing')m='Installing firmware '+u.progress+'%. Don\'t turn the printer off.';
+ else if(u.state==='installing')m='Installing firmware '+u.progress+'%. The screen may go blank for about a minute. Don\'t turn the printer off.';
  else if(u.available)m='New firmware '+u.available+' is ready. It installs in about a minute; the printer restarts.';
  if(u.error&&(u.state==='failed'||!u.available))m+=' ('+u.error+')';$('upd').textContent=m;
  $('updBarBox').classList.toggle('hidden',!(u.state==='downloading'||u.state==='installing'));$('updBar').style.width=u.progress+'%';

@@ -87,8 +87,11 @@ struct Secure
     BearSSL::X509List         anchors;
     BearSSL::WiFiClientSecure client;
 
-    explicit Secure(const char* root) : anchors(root)
+    // rx: receive buffer size; 0 = BearSSL's full 16.7 KB (needed for big downloads). Small answers (remote printing's
+    // checks, a few hundred bytes) work with less, which is what lets them run while the web server is up.
+    explicit Secure(const char* root, uint16_t rx = 0) : anchors(root)
     {
+        if (rx) client.setBufferSizes(rx, 512);
         client.setTrustAnchors(&anchors);
         const time_t now = time(nullptr);
         client.setX509Time(now >= VALID_TIME ? now : buildTime());
@@ -105,10 +108,10 @@ uint32_t g_pausedUntil = 0; // after a crash during a secure connection: no inte
 struct Session
 {
     std::unique_ptr<Secure> tls;
-    explicit Session(const String& url)
+    explicit Session(const String& url, uint16_t rx = 0)
     {
         setInTls(true);
-        tls.reset(new Secure(rootFor(url)));
+        tls.reset(new Secure(rootFor(url), rx));
         logf("tls: %s, heap %lu, block %lu", url.substring(8, 40).c_str(), (unsigned long)ESP.getFreeHeap(),
              (unsigned long)ESP.getMaxFreeBlockSize());
     }
@@ -239,6 +242,40 @@ bool latestRelease(const char* tagPrefix, const std::function<int(const String&,
     url       = "";
     assetName = "";
 
+    // 0. escaloplab.com lists the newest published releases with their files in one short call (each HTTPS call
+    //    takes the ESP-01 seconds). GitHub directly only when the site can't answer.
+    {
+        const char* key = strcmp(tagPrefix, WIFI_TAG) == 0 ? "wifi" : "firmware";
+        JsonDocument filter;
+        filter[key][0]["v"]         = true;
+        filter[key][0]["a"][0]["n"] = true;
+        filter[key][0]["a"][0]["u"] = true;
+        JsonDocument doc;
+        int          status = 0;
+        String       siteError;
+        if (getJson(RELEASES_URL, doc, filter, status, siteError) && status == 200 && doc[key].is<JsonArray>()) {
+            for (JsonObject rel : doc[key].as<JsonArray>()) {
+                const String v = rel["v"] | "";
+                if (!isVersion(v)) continue;
+                int best = -1;
+                for (JsonObject asset : rel["a"].as<JsonArray>()) {
+                    const String name = asset["n"] | "";
+                    const int    r    = rank(name, v);
+                    if (r < 0 || (best >= 0 && r >= best)) continue;
+                    best      = r;
+                    assetName = name;
+                    url       = asset["u"] | "";
+                }
+                if (best < 0) continue;
+                version = v;
+                logf("cloud: newest %s%s: %s (escaloplab.com)", tagPrefix, version.c_str(), assetName.c_str());
+                return url.startsWith("https://");
+            }
+            return true; // nothing published for this printer
+        }
+        logf("cloud: release list from escaloplab.com failed (%s), asking GitHub", siteError.c_str());
+    }
+
     // 1. All tags with the prefix (a short list, unlike the releases of the whole repository)
     std::vector<String> versions;
     {
@@ -363,11 +400,11 @@ bool download(const String& urlIn, const std::function<bool(const uint8_t*, size
     return false;
 }
 
-bool postJson(const String& url, const String& body, JsonDocument& answer, int& status, String& error)
+bool postJson(const String& url, const String& body, JsonDocument& answer, int& status, String& error, uint16_t rxBuffer)
 {
     status = 0;
     if (!ready(error)) return false;
-    Session    session(url);
+    Session    session(url, rxBuffer);
     HTTPClient http;
     prepare(http);
     if (!http.begin(session.tls->client, url)) {

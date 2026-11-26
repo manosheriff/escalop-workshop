@@ -35,7 +35,8 @@ bool download(const String& url, const std::function<bool(const uint8_t*, size_t
 
 // POSTs JSON to escaloplab.com (device header included) and reads the JSON answer. False only on network problems;
 // `status` is the HTTP status (the answer may be an error).
-bool postJson(const String& url, const String& body, JsonDocument& answer, int& status, String& error);
+// rxBuffer: TLS receive buffer (0 = full size); a small one needs ~9 KB less memory but only suits short answers.
+bool postJson(const String& url, const String& body, JsonDocument& answer, int& status, String& error, uint16_t rxBuffer = 0);
 
 // What escaloplab.com answers to a check-in (PROTOCOL.md, "Check-in")
 struct Checkin

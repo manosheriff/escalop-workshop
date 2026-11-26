@@ -21,9 +21,12 @@ namespace {
 constexpr uint32_t POLL_IDLE     = 15 * SECONDS;
 constexpr uint32_t POLL_PRINTING = 30 * SECONDS;
 constexpr uint32_t BACKOFF_MAX   = 5 * MINUTES;
-// A secure connection needs one ~17 KB block for its receive buffer plus a few KB more (see cloud.cpp)
-constexpr uint32_t NEED_BLOCK = 17800;
-constexpr uint32_t NEED_HEAP  = 24000;
+// The regular checks use a secure connection with an 8 KB receive buffer (our answers are a few hundred bytes):
+// ~22 KB in all (receive buffer 8.5 KB, BearSSL's own stack 6.2 KB, TLS and certificate state ~7 KB), which fits next
+// to the web server. Below this, the round is skipped instead of risking a crash.
+constexpr uint16_t SMALL_RX   = 8192 + 325;
+constexpr uint32_t NEED_BLOCK = 9000;
+constexpr uint32_t NEED_HEAP  = 25000;
 // How long after M24 a print may take to show up as printing (heating, homing, leveling)
 constexpr uint32_t START_GRACE = 4 * MINUTES;
 
@@ -37,6 +40,9 @@ uint32_t g_codeShown = 0;            // last time the code went to the printer's
 bool     g_linked    = false;
 bool     g_busy      = false;
 uint32_t g_lowLogged = 0;
+uint32_t g_holdJobsUntil = 0; // after a failed fetch at start-up: don't restart for the job again right away
+bool     g_atStartup = false; // full-size connections (right after a restart)
+bool     g_reported  = true;  // the watched job's "printing" reached the website
 
 // The print this module started for the website
 String   g_job;          // its id; "" = none
@@ -91,7 +97,7 @@ bool sendEvent(const String& job, const char* event, const String& error = Strin
     JsonDocument answer;
     int          status = 0;
     String       err;
-    if (!Cloud::postJson(JOB_URL, payload, answer, status, err) || (status >= 500)) {
+    if (!Cloud::postJson(JOB_URL, payload, answer, status, err, SMALL_RX) || (status >= 500)) {
         logf("remote: %s for %s not sent (%s)", event, job.substring(0, 8).c_str(), err.length() ? err.c_str() : String(status).c_str());
         g_pendingJob   = job;
         g_pendingEvent = event;
@@ -152,15 +158,32 @@ void runJob(const String& id, const String& url, uint32_t size, const String& ti
         return;
     }
     logf("remote: %s on the SD card in %lu s, starting", name.c_str(), (unsigned long)(elapsed(t0) / 1000));
-    Marlin::send("M23 " + name);
-    Marlin::send("M24");
     g_job          = id;
     g_jobFile      = name;
     g_jobStarted   = millis();
     g_doneBefore   = Marlin::printsDone();
     g_seenPrinting = false;
-    rememberJob(id);
-    sendEvent(id, "printing");
+    g_reported     = false;
+    rememberJob(id); // before anything else can go wrong: a restart keeps watching it
+    // Start it and make sure it started (the printer may still be closing the file): up to 3 tries
+    bool started = false;
+    for (int attempt = 0; attempt < 3 && !started; ++attempt) {
+        Marlin::requestInfo(2000);
+        Marlin::send("M23 " + name);
+        Marlin::send("M24");
+        const uint32_t s = millis();
+        while (elapsed(s) < 8 * SECONDS && !(started = printing())) {
+            Marlin::poll();
+            delay(20);
+            if (elapsed(s) % 2000 < 20) Marlin::send("M9100");
+        }
+        if (!started) logf("remote: the print didn't start (try %d)", attempt + 1);
+    }
+    if (!started) {
+        logf("remote: %s is on the SD card; start it from the printer's screen", name.c_str());
+        showOnPrinter("Print on SD: " + name);
+    }
+    // "printing" is reported from loop() once the printer runs it (a small connection, after this download's)
 }
 
 // Is the website's print still going? Done, stopped on the printer, or still running.
@@ -200,7 +223,7 @@ void poll()
     int          status = 0;
     String       error;
     const uint32_t t0 = millis();
-    if (!Cloud::postJson(POLL_URL, payload, answer, status, error)) {
+    if (!Cloud::postJson(POLL_URL, payload, answer, status, error, g_atStartup ? 0 : SMALL_RX)) {
         logf("remote: no answer (%s)", error.c_str());
         g_state   = State::Error;
         g_backoff = g_backoff ? std::min(g_backoff * 2, BACKOFF_MAX) : 30 * SECONDS;
@@ -267,7 +290,17 @@ void poll()
         const String url   = job["url"] | "";
         const uint32_t size = job["size"] | 0;
         const String title = job["title"] | "print";
-        if (validId(id) && url.startsWith("https://")) runJob(id, url, size, title);
+        if (!validId(id) || !url.startsWith("https://")) return;
+        if (g_atStartup) {
+            runJob(id, url, size, title);
+        } else if (int32_t(millis() - g_holdJobsUntil) >= 0) {
+            // The download needs the full-size connection: restart (Wi-Fi only, ~15 s; the printer keeps running)
+            logf("remote: a print is waiting, restarting to fetch it");
+            setBootTasks(BOOT_TASK);
+            markPlannedRestart();
+            delay(200);
+            ESP.restart();
+        }
     }
 }
 
@@ -284,6 +317,7 @@ void loop()
             g_jobStarted   = millis();
             g_doneBefore   = Marlin::printsDone();
             g_seenPrinting = false;
+            g_reported     = false; // say "printing" again once it runs (the last report may not have arrived)
             logf("remote: still watching job %s", g_job.substring(0, 8).c_str());
         }
     }
@@ -316,7 +350,30 @@ void loop()
         g_pendingJob = "";
         if (!sendEvent(job, event.c_str(), error)) return;
     }
+    // The website print runs on the printer: say so (once; a failed send is retried as a pending event)
+    if (g_job.length() && !g_reported && printing()) {
+        g_reported = true;
+        if (!sendEvent(g_job, "printing")) return;
+    }
     poll();
+}
+
+void atStartup()
+{
+    g_atStartup = true;
+    const String jobBefore = g_job;
+    logf("remote: fetching the waiting print (heap %lu)", (unsigned long)ESP.getFreeHeap());
+    for (int i = 0; i < 3 && !Marlin::protocol(); ++i) Marlin::requestInfo(2000);
+    if (g_pendingJob.length()) {
+        const String job = g_pendingJob, event = g_pendingEvent, error = g_pendingError;
+        g_pendingJob = "";
+        sendEvent(job, event.c_str(), error);
+    }
+    if (Marlin::protocol()) poll();
+    g_atStartup = false;
+    // Nothing started (no answer, card missing, printer busy): wait before trying the restart again
+    if (g_job == jobBefore) g_holdJobsUntil = millis() + 5 * MINUTES;
+    g_nextAt = millis() + POLL_IDLE;
 }
 
 const char* stateName()

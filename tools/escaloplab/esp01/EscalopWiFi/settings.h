@@ -28,6 +28,11 @@ struct Settings
     uint32_t remoteMagic;
     char     remoteToken[49];   // 48 hex digits; "" = none yet
     char     remoteJob[37];     // the website print it started and is watching (survives the daily restart)
+
+    // Start-up internet tasks (1.0.24+): when the check-in and update check last ran (Unix time, 0 = never), so a
+    // power-on soon after skips them and the web page is up in seconds. tasksMagic tells whether it was ever written.
+    uint32_t tasksMagic;
+    uint32_t tasksAt;
 };
 
 extern Settings settings;

@@ -41,9 +41,12 @@ bool     g_scanForPrinter = false;
 uint32_t g_lastInfoAsk  = 0;
 int      g_unanswered   = 0;     // M9100 without an INFO (older firmware)
 uint32_t g_dailyAt      = 0;     // when the daily internet tasks are due
+uint32_t g_dailyIn      = UPDATE_CHECK_EVERY; // from the start (shorter when power-on tasks were skipped)
 
 // Internet work, done right after a (re)start while memory is free (see runInternetTasks)
-enum : uint32_t { TASK_CHECKIN = 1, TASK_UPDATES = 2, TASK_FROM_PRINTER = 4 };
+// TASK_POWER_ON: the check-in and update check only because the power came on (skipped if they ran < 20 h ago)
+enum : uint32_t { TASK_CHECKIN = 1, TASK_UPDATES = 2, TASK_FROM_PRINTER = 4, TASK_POWER_ON = 16 };
+constexpr uint32_t TASKS_FRESH_FOR = 20 * 3600; // seconds
 
 void sendSerial()
 {
@@ -188,11 +191,27 @@ void runInternetTasks(uint32_t tasks)
         return;
     }
     Cloud::startClock();
+    // Power-on soon after the last check (a printer switched off and on): skip the slow HTTPS calls, so the web page
+    // and printing over Wi-Fi start in seconds. The daily check still runs; a module without a serial checks in.
+    if ((tasks & TASK_POWER_ON) && settings.tasksAt && settings.serial[0] && Cloud::ensureTime()) {
+        const uint32_t age = uint32_t(time(nullptr)) - settings.tasksAt;
+        if (age < TASKS_FRESH_FOR) {
+            logf("start-up tasks: last check %lu min ago, skipped", (unsigned long)(age / 60));
+            tasks &= ~(TASK_CHECKIN | TASK_UPDATES);
+            g_dailyIn = UPDATE_CHECK_EVERY - age * 1000UL; // the daily check stays 24 h after the last one
+        }
+    }
+    if (!(tasks & (TASK_CHECKIN | TASK_UPDATES | Remote::BOOT_TASK))) return;
     logf("start-up tasks (heap %lu)", (unsigned long)ESP.getFreeHeap());
     // The printer's firmware version, for the check-in and the update check
     for (int i = 0; i < 3 && !Marlin::info().fw.length(); ++i) Marlin::requestInfo(2000);
     if (tasks & TASK_CHECKIN) checkin();
     if (tasks & TASK_UPDATES) Updates::checkAtStartup(tasks & TASK_FROM_PRINTER);
+    if ((tasks & (TASK_CHECKIN | TASK_UPDATES)) && time(nullptr) > 1735689600) {
+        settings.tasksAt = uint32_t(time(nullptr));
+        settingsSave();
+    }
+    if (tasks & Remote::BOOT_TASK) Remote::atStartup();
 }
 
 // Restarts to run internet tasks (not in the middle of an upload or a firmware install)
@@ -224,7 +243,7 @@ void setup()
     if (woke) logf("marlin: the printer's bootloader was waiting; started the firmware");
     Cloud::begin(crashedInTls);
     uint32_t tasks = takeBootTasks();
-    if (powerOn) tasks |= TASK_CHECKIN | TASK_UPDATES;
+    if (powerOn) tasks |= TASK_CHECKIN | TASK_UPDATES | TASK_POWER_ON;
 
     Marlin::onEsc([](const String& cmd, const String& args) {
         if (g_requests.size() < 8) g_requests.push_back({cmd, args});
@@ -242,7 +261,7 @@ void setup()
     g_lastInfoAsk = millis() - 8 * SECONDS; // first M9100 after 2 s
 
     if (tasks && settings.ssid[0]) runInternetTasks(tasks);
-    g_dailyAt = millis() + UPDATE_CHECK_EVERY;
+    g_dailyAt = millis() + g_dailyIn;
 
     Net::onEvent(onNetEvent);
     Net::begin();

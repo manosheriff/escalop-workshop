@@ -4,4 +4,4 @@
 # publish: yes = every printer installs it; no = a draft that printers ignore (check it first).
 ref = master
 publish = no
-# 1.7.7: printer 00003 Z steps 640
+# 1.7.8: printer 00003 X on an A4988 (80), Z 800

@@ -59,7 +59,10 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("out", type=Path)
     ap.add_argument("--base-url", default=BASE_URL)
+    ap.add_argument("--root", type=Path, help="another profiles folder (for a test)")
     args = ap.parse_args()
+    global ROOT
+    ROOT = args.root or ROOT
     versions = {v: json.loads((ROOT / f"{v}.json").read_text(encoding="utf-8"))["version"] for v in VENDORS}
 
     data = pack()

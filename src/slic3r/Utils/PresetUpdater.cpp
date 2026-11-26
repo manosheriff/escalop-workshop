@@ -939,15 +939,21 @@ void PresetUpdater::priv::apply_escalop_profiles_now() const
 {
     GUI::GUI_App &app = GUI::wxGetApp();
     // Work in progress or an open dialog: the next start installs them
-    if (!app.mainframe || !app.mainframe->IsEnabled() || !app.plater() || !app.plater()->model().objects.empty() ||
-        app.has_current_preset_changes())
+    const char *wait = !app.mainframe || !app.plater()             ? "the window isn't ready" :
+                       !app.mainframe->IsEnabled()                 ? "a dialog is open" :
+                       !app.plater()->model().objects.empty()      ? "a model is open" :
+                       app.has_current_preset_changes()            ? "settings have unsaved changes" : nullptr;
+    if (wait) {
+        BOOST_LOG_TRIVIAL(info) << "[Escalop profiles] installed at the next start: " << wait;
         return;
+    }
     app.preset_bundle->export_selections(*app.app_config); // keep what is selected now
     if (!install_escalop_profiles())
         return;
     app.preset_bundle->load_presets(*app.app_config, ForwardCompatibilitySubstitutionRule::EnableSilentDisableSystem);
     app.load_current_presets();
     app.plater()->set_bed_shape();
+    BOOST_LOG_TRIVIAL(info) << "[Escalop profiles] installed now";
 }
 
 void PresetUpdater::apply_escalop_profiles_now()

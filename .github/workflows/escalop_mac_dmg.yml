@@ -1,0 +1,47 @@
+# Escalop Workshop: packs the Apple-chip (arm64) Mac app of an earlier build run into a .dmg, for when GitHub has no
+# Intel Mac runner for the universal build. To use: set RUN_ID (the escalop_build.yml run) and VERSION, push to escalop.
+# The .dmg comes out as the artifact EscalopWorkshop_Mac_arm64; attach it to the release by hand.
+name: Escalop Workshop Apple-chip dmg
+
+on:
+  push:
+    branches:
+      - escalop
+    paths:
+      - '.github/workflows/escalop_mac_dmg.yml'
+
+env:
+  RUN_ID: '45799788453'
+  VERSION: '1.3.9'
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  dmg:
+    runs-on: macos-15
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: OrcaSlicer_Mac_bundle_arm64_*
+          path: bundle
+          run-id: ${{ env.RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Make the dmg
+        run: |
+          tar -xzf "$(find bundle -name '*.tar.gz' -print -quit)" -C .
+          lipo -archs OrcaSlicer/OrcaSlicer.app/Contents/MacOS/OrcaSlicer
+          mkdir dmg
+          # Same layout as the universal dmg: the app shows as "Escalop Workshop" in Applications
+          cp -R OrcaSlicer/OrcaSlicer.app "dmg/Escalop Workshop.app"
+          ln -s /Applications dmg/Applications
+          for i in 1 2 3; do hdiutil create -volname "Escalop Workshop" -srcfolder dmg -ov -format UDZO \
+            "EscalopWorkshop_Mac_AppleChip_V${VERSION}.dmg" && break; sleep 10; done
+          hdiutil verify "EscalopWorkshop_Mac_AppleChip_V${VERSION}.dmg"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: EscalopWorkshop_Mac_arm64
+          path: EscalopWorkshop_Mac_AppleChip_V*.dmg

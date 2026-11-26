@@ -17,6 +17,7 @@
 #define CHECKIN_URL        "https://escaloplab.com/api/printer-units/checkin"
 #define POLL_URL           "https://escaloplab.com/api/printer-units/poll" // remote printing (models.escaloplab.com)
 #define JOB_URL            "https://escaloplab.com/api/printer-units/job"
+#define RELEASES_URL       "https://escaloplab.com/api/printer-units/releases" // update check: one call, not ~10 to GitHub
 #define USER_AGENT         "EscalopWiFi/" WIFI_VERSION
 
 // Wiring (see ../README.md): ESP-01 TX/RX <-> Mega Serial0 (RAMPS AUX-1 D0/D1), GPIO0 -> 1N4148 -> Mega RESET.

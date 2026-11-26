@@ -242,6 +242,40 @@ bool latestRelease(const char* tagPrefix, const std::function<int(const String&,
     url       = "";
     assetName = "";
 
+    // 0. escaloplab.com lists the newest published releases with their files in one short call (each HTTPS call
+    //    takes the ESP-01 seconds). GitHub directly only when the site can't answer.
+    {
+        const char* key = strcmp(tagPrefix, WIFI_TAG) == 0 ? "wifi" : "firmware";
+        JsonDocument filter;
+        filter[key][0]["v"]         = true;
+        filter[key][0]["a"][0]["n"] = true;
+        filter[key][0]["a"][0]["u"] = true;
+        JsonDocument doc;
+        int          status = 0;
+        String       siteError;
+        if (getJson(RELEASES_URL, doc, filter, status, siteError) && status == 200 && doc[key].is<JsonArray>()) {
+            for (JsonObject rel : doc[key].as<JsonArray>()) {
+                const String v = rel["v"] | "";
+                if (!isVersion(v)) continue;
+                int best = -1;
+                for (JsonObject asset : rel["a"].as<JsonArray>()) {
+                    const String name = asset["n"] | "";
+                    const int    r    = rank(name, v);
+                    if (r < 0 || (best >= 0 && r >= best)) continue;
+                    best      = r;
+                    assetName = name;
+                    url       = asset["u"] | "";
+                }
+                if (best < 0) continue;
+                version = v;
+                logf("cloud: newest %s%s: %s (escaloplab.com)", tagPrefix, version.c_str(), assetName.c_str());
+                return url.startsWith("https://");
+            }
+            return true; // nothing published for this printer
+        }
+        logf("cloud: release list from escaloplab.com failed (%s), asking GitHub", siteError.c_str());
+    }
+
     // 1. All tags with the prefix (a short list, unlike the releases of the whole repository)
     std::vector<String> versions;
     {

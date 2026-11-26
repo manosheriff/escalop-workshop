@@ -5,7 +5,7 @@
 // Escalop v80 Wi-Fi module (ESP-01). See ../PROTOCOL.md for how it talks to the printer's Marlin firmware.
 
 // This module's own software version. A GitHub release tagged wifi-vX.Y.Z with a newer X.Y.Z updates it.
-#define WIFI_VERSION "1.0.24"
+#define WIFI_VERSION "1.0.25"
 
 #define PRINTER_MODEL  "v80"
 #define HOTSPOT_PREFIX "Escalop-v80-"  // + serial number, e.g. Escalop-v80-00123

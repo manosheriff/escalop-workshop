@@ -329,6 +329,7 @@ def write_filaments():
                 "instantiation": "true",
                 "filament_vendor": [brand],
                 "compatible_printers": [],
+                **OWNER.get("filaments", {}).get(name, {}),
             })
             added.append({"name": name, "sub_path": f"filament/{brand}/{name}.json"})
     lib["filament_list"] = entries + added
@@ -336,6 +337,12 @@ def write_filaments():
     lib["version"] = "02.04.00.11"
     dump(lib_json, lib)
     return len(added)
+
+
+# The owner's tuned settings (publish_my_presets.py copies them from the owner's "- Main" presets in the app):
+# "printers" go into every v80 printer, "processes" and "filaments" into the preset of that name.
+OWNER = json.loads((Path(__file__).with_name("owner_presets.json")).read_text(encoding="utf-8")) \
+    if Path(__file__).with_name("owner_presets.json").exists() else {}
 
 
 def main():
@@ -353,13 +360,14 @@ def main():
     for name, x, y, h, drive in MODELS:
         slug = name.lower().replace(" ", "_")
         dump(base / "machine" / f"{name}.json", model_file(name, slug))
-        dump(base / "machine" / f"{name} 0.4 nozzle.json", printer_preset(name, x, y, h, drive))
+        dump(base / "machine" / f"{name} 0.4 nozzle.json", {**printer_preset(name, x, y, h, drive), **OWNER.get("printers", {})})
         machine_models.append({"name": name, "sub_path": f"machine/{name}.json"})
         machines.append({"name": f"{name} 0.4 nozzle", "sub_path": f"machine/{name} 0.4 nozzle.json"})
         bed_stl(base / f"{slug}_buildplate_model.stl", x, y)
         bed_texture(base / f"{slug}_buildplate_texture.svg", x, y)
     for prusa_name, name in PRUSA_QUALITIES:
         p = quality(prusa_name, name)
+        p.update(OWNER.get("processes", {}).get(p["name"], {}))
         dump(base / "process" / f"{p['name']}.json", p)
         processes.append({"name": p["name"], "sub_path": f"process/{p['name']}.json"})
 

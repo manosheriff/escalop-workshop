@@ -912,5 +912,5 @@ body
 	pointer-events: auto!important;
 }
 
-/* Escalop Workshop: no Bambu cloud (Escaloplab printers only) */
+/* TripleF3D: no Bambu cloud (TripleF3D printers only) */
 #BambuCloudSection { display: none !important; }

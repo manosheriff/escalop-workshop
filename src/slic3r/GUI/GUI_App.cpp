@@ -658,7 +658,7 @@ static void register_win32_device_notification_event()
 #endif // WIN32
 
 #ifdef _WIN32
-// Escaloplab: Escalop Workshop updates itself on Windows. The new installer downloads in the background
+// Escaloplab: TripleF3D updates itself on Windows. The new installer downloads in the background
 // while the app is open, then the app asks: "Update now" closes it, installs silently and opens it again;
 // "Remind me later" asks again at the next start. From 1.3.1 on the app is installed per user (see
 // cmake/modules/NSIS.template.in), so no administrator permission is needed.
@@ -680,10 +680,10 @@ static void escalop_ask_update(const boost::filesystem::path& installer, const s
         return;
     }
     MessageDialog dlg(app.mainframe,
-                      wxString::Format(_L("Escalop Workshop %s is ready to install.\n\n"
+                      wxString::Format(_L("TripleF3D %s is ready to install.\n\n"
                                           "Update now closes the app, installs the update and opens it again."),
                                        wxString::FromUTF8(version)),
-                      _L("New version of Escalop Workshop"), wxYES | wxNO | wxICON_INFORMATION);
+                      _L("New version of TripleF3D"), wxYES | wxNO | wxICON_INFORMATION);
     dlg.SetButtonLabel(wxID_YES, _L("Update now"), true);
     dlg.SetButtonLabel(wxID_NO, _L("Remind me later"));
     if (dlg.ShowModal() != wxID_YES) {
@@ -823,7 +823,7 @@ static void generic_exception_handle()
         // and terminate the app so it is at least certain to happen now.
         BOOST_LOG_TRIVIAL(error) << boost::format("std::bad_alloc exception: %1%") % ex.what();
         flush_logs();
-        wxString errmsg = wxString::Format(_L("Escalop Workshop will terminate because of running out of memory. "
+        wxString errmsg = wxString::Format(_L("TripleF3D will terminate because of running out of memory. "
                                               "It may be a bug. It will be appreciated if you report the issue to our team."));
         wxMessageBox(errmsg + "\n\n" + wxString(ex.what()), _L("Fatal error"), wxOK | wxICON_ERROR);
 
@@ -832,7 +832,7 @@ static void generic_exception_handle()
      } catch (const boost::io::bad_format_string& ex) {
      	BOOST_LOG_TRIVIAL(error) << boost::format("Uncaught exception: %1%") % ex.what();
         	flush_logs();
-        wxString errmsg = _L("Escalop Workshop will terminate because of a localization error. "
+        wxString errmsg = _L("TripleF3D will terminate because of a localization error. "
                              "It will be appreciated if you report the specific scenario this issue happened.");
         wxMessageBox(errmsg + "\n\n" + wxString(ex.what()), _L("Critical error"), wxOK | wxICON_ERROR);
         std::terminate();
@@ -840,7 +840,7 @@ static void generic_exception_handle()
     } catch (const std::exception& ex) {
         BOOST_LOG_TRIVIAL(error) << boost::format("Uncaught exception: %1%") % ex.what();
         flush_logs();
-        wxLogError(format_wxstr(_L("Escalop Workshop got an unhandled exception: %1%"), ex.what()));
+        wxLogError(format_wxstr(_L("TripleF3D got an unhandled exception: %1%"), ex.what()));
         throw;
     }
 //#endif
@@ -1091,9 +1091,9 @@ void GUI_App::post_init()
         CallAfter([] {
             const wxString wiki_url = "https://www.orcaslicer.com/wiki/user_profiles/user_profiles.html#profiles-missing-after-updating-from-bambu-cloud";
             MessageDialog dlg(nullptr,
-                _L("Since version 2.4.0, Escalop Workshop syncs user profiles through Escaloplab account instead of Bambu Cloud.\n\n"
-                   "To migrate your existing profiles, log in to Escaloplab account and they will be transferred automatically. "
-                   "To learn more about how Escalop Workshop stores and syncs your profiles, or to migrate your presets manually, check out our wiki.\n\n"
+                _L("Since version 2.4.0, TripleF3D syncs user profiles through TripleF3D account instead of Bambu Cloud.\n\n"
+                   "To migrate your existing profiles, log in to TripleF3D account and they will be transferred automatically. "
+                   "To learn more about how TripleF3D stores and syncs your profiles, or to migrate your presets manually, check out our wiki.\n\n"
                    "If you did not use Bambu Cloud to sync profiles, this change does not affect you and you can safely ignore this message."),
                 _L("Profile syncing change"),
                 wxOK,
@@ -2482,7 +2482,7 @@ void GUI_App::init_webview_runtime()
     }
 
     BOOST_LOG_TRIVIAL(warning) << "WebView2 runtime not found; prompting user to install.";
-    int nRet = wxMessageBox(_L("Escalop Workshop requires the Microsoft WebView2 Runtime to operate certain features.\nClick Yes to install it now."),
+    int nRet = wxMessageBox(_L("TripleF3D requires the Microsoft WebView2 Runtime to operate certain features.\nClick Yes to install it now."),
                             _L("WebView2 Runtime"), wxYES_NO);
     if (nRet != wxYES) {
         BOOST_LOG_TRIVIAL(warning) << "User declined WebView2 runtime installation.";
@@ -2504,16 +2504,85 @@ void GUI_App::init_webview_runtime()
         BOOST_LOG_TRIVIAL(error) << "WebView2 runtime installation failed or still not detected.";
         wxMessageBox(_L("The Microsoft WebView2 Runtime could not be installed.\n"
                         "Some features, including the setup wizard, may appear blank until it is installed.\n"
-                        "Please install it manually from https://developer.microsoft.com/microsoft-edge/webview2/ and restart Orca Slicer."),
+                        "Please install it manually from https://developer.microsoft.com/microsoft-edge/webview2/ and restart TripleF3D."),
                      _L("WebView2 Runtime"), wxOK | wxICON_WARNING);
     }
 }
 #endif
 
+// TripleF3D 1.4.0: the printers and print qualities were renamed from "Escaloplab v80 ..." to "TripleF3D v80 ...".
+// The system presets keep their old names as "renamed_from", which covers projects and presets that inherit them;
+// this moves the rest once, before anything loads: the installed printer models and selected presets in the app
+// config, and the user's own presets (their names, what they inherit, the printers they fit).
+static void triplef3d_migrate_names(const boost::filesystem::path& dir)
+{
+    namespace fs = boost::filesystem;
+    static const std::string from = "Escaloplab v80", to = "TripleF3D v80";
+    boost::system::error_code ec;
+    const fs::path marker = dir / "triplef3d_names";
+    if (!fs::is_directory(dir, ec) || fs::exists(marker, ec))
+        return;
+    auto read = [](const fs::path& p, std::string& s) {
+        boost::nowide::ifstream f(p.string(), std::ios::binary);
+        s.assign(std::istreambuf_iterator<char>(f), std::istreambuf_iterator<char>());
+        return f.good() || f.eof();
+    };
+    auto write = [](const fs::path& p, const std::string& s) {
+        boost::nowide::ofstream f(p.string(), std::ios::binary | std::ios::trunc);
+        f << s;
+        return f.good();
+    };
+    bool ok = true;
+    auto migrate = [&](const fs::path& p) { // replaces the old names in one file; true if it changed
+        std::string s;
+        if (!read(p, s) || s.find(from) == std::string::npos)
+            return false;
+        boost::replace_all(s, from, to);
+        ok = write(p, s) && ok;
+        return true;
+    };
+    migrate(dir / (std::string(SLIC3R_APP_KEY) + ".conf"));
+    for (const char* sub : {"user", "printers"}) {
+        if (!fs::is_directory(dir / sub, ec))
+            continue;
+        std::vector<fs::path> files;
+        for (fs::recursive_directory_iterator it(dir / sub, ec), end; !ec && it != end; it.increment(ec))
+            if (fs::is_regular_file(it->path(), ec) && (it->path().extension() == ".json" || it->path().extension() == ".ini"))
+                files.push_back(it->path());
+        for (const fs::path& p : files) {
+            if (!migrate(p))
+                continue;
+            fs::path info = fs::path(p).replace_extension(".info");
+            std::string s;
+            if (fs::exists(info, ec) && read(info, s)) {
+                // base_id is the old parent's id; empty, the app takes it from the renamed parent
+                std::vector<std::string> lines;
+                boost::split(lines, s, boost::is_any_of("\n"));
+                for (std::string& l : lines)
+                    if (boost::starts_with(l, "base_id"))
+                        l = "base_id = ";
+                ok = write(info, boost::join(lines, "\n")) && ok;
+            }
+            const std::string name = p.filename().string();
+            if (name.find(from) != std::string::npos) {
+                const fs::path target = p.parent_path() / boost::replace_all_copy(name, from, to);
+                if (!fs::exists(target, ec)) {
+                    fs::rename(p, target, ec);
+                    if (fs::exists(info, ec))
+                        fs::rename(info, fs::path(target).replace_extension(".info"), ec);
+                }
+            }
+        }
+    }
+    if (ok)
+        write(marker, "1.4.0\n");
+    BOOST_LOG_TRIVIAL(info) << "TripleF3D: names moved from " << from << (ok ? "" : " (some files couldn't be written)");
+}
+
 void GUI_App::init_app_config()
 {
 	// Profiles for the alpha are stored into the PrusaSlicer-alpha directory to not mix with the current release.
-    // Escalop Workshop keeps its settings apart from an installed OrcaSlicer.
+    // TripleF3D keeps its settings apart from an installed OrcaSlicer.
     SetAppName(ESCALOP_DATA_KEY);
 //	SetAppName(SLIC3R_APP_KEY "-alpha");
 //  SetAppName(SLIC3R_APP_KEY "-beta");
@@ -2588,6 +2657,8 @@ void GUI_App::init_app_config()
 #endif
 
     BOOST_LOG_TRIVIAL(info) << boost::format("gui mode, Current OrcaSlicer Version %1% build %2%") % SoftFever_VERSION % GIT_COMMIT_HASH;
+
+    triplef3d_migrate_names(boost::filesystem::path(data_dir()));
 
     //BBS: remove GCodeViewer as seperate APP logic
 	if (!app_config)
@@ -3081,7 +3152,7 @@ bool GUI_App::on_init_inner()
                /* wxString tips = wxString::Format(_L("Click to download new version in default browser: %s"), version_info.version_str);
                 DownloadDialog dialog(this->mainframe,
                     tips,
-                    _L("New version of Escalop Workshop"),
+                    _L("New version of TripleF3D"),
                     false,
                     wxCENTER | wxICON_INFORMATION);
 
@@ -3132,7 +3203,7 @@ bool GUI_App::on_init_inner()
                 wxString tips = wxString::Format(_L("Click to download new version in default browser: %s"), version_str);
                 DownloadDialog dialog(this->mainframe,
                     tips,
-                    _L("Escalop Workshop needs an update"),
+                    _L("TripleF3D needs an update"),
                     false,
                     wxCENTER | wxICON_INFORMATION);
                 dialog.SetExtendedMessage(description_text);
@@ -3391,7 +3462,7 @@ bool GUI_App::on_init_inner()
         m_config_corrupted = false;
         show_error(nullptr,
                    _u8L(
-                       "The Escalop Workshop configuration file may be corrupted and cannot be parsed.\nEscalop Workshop has attempted to recreate the "
+                       "The TripleF3D configuration file may be corrupted and cannot be parsed.\nTripleF3D has attempted to recreate the "
                        "configuration file.\nPlease note, application settings will be lost, but printer profiles will not be affected."));
     }
     return true;
@@ -5171,7 +5242,7 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
 
     // Version limit
     if (code == HttpErrorVersionLimited) {
-        MessageDialog msg_dlg(nullptr, _L("The version of Escalop Workshop is too low and needs to be updated to the latest version before it can be used normally."), "", wxAPPLY | wxOK);
+        MessageDialog msg_dlg(nullptr, _L("The version of TripleF3D is too low and needs to be updated to the latest version before it can be used normally."), "", wxAPPLY | wxOK);
         if (msg_dlg.ShowModal() == wxOK) {
         }
     }
@@ -5244,11 +5315,11 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
 
             switch (conflict_code) {
             case -1:
-                text = header + " " + _u8L("This preset has a newer version in Escaloplab account.\n"
+                text = header + " " + _u8L("This preset has a newer version in TripleF3D account.\n"
                             "Pull downloads the cloud copy. Force push overwrites it with your local preset.");
                 break;
             case -2:
-                text = header + " " + _u8L("A preset with this name already exists in Escaloplab account.\n"
+                text = header + " " + _u8L("A preset with this name already exists in TripleF3D account.\n"
                             "Pull downloads the cloud copy. Force push overwrites it with your local preset.");
                 break;
             case -3:
@@ -5954,7 +6025,7 @@ bool GUI_App::process_network_msg(std::string dev_id, std::string msg)
         else if (msg == "update_studio") {
             BOOST_LOG_TRIVIAL(info) << "process_network_msg, update_studio";
             if (!m_show_error_msgdlg) {
-                MessageDialog msg_dlg(nullptr, _L("Please try updating Escalop Workshop and then try again."), "", wxAPPLY | wxOK);
+                MessageDialog msg_dlg(nullptr, _L("Please try updating TripleF3D and then try again."), "", wxAPPLY | wxOK);
                 m_show_error_msgdlg = true;
                 msg_dlg.ShowModal();
                 m_show_error_msgdlg = false;
@@ -5964,7 +6035,7 @@ bool GUI_App::process_network_msg(std::string dev_id, std::string msg)
         else if (msg == "update_fixed_studio") {
             BOOST_LOG_TRIVIAL(info) << "process_network_msg, update_fixed_studio";
             if (!m_show_error_msgdlg) {
-                MessageDialog msg_dlg(nullptr, _L("Please try updating Escalop Workshop and then try again."), "", wxAPPLY | wxOK);
+                MessageDialog msg_dlg(nullptr, _L("Please try updating TripleF3D and then try again."), "", wxAPPLY | wxOK);
                 m_show_error_msgdlg = true;
                 msg_dlg.ShowModal();
                 m_show_error_msgdlg = false;
@@ -5974,7 +6045,7 @@ bool GUI_App::process_network_msg(std::string dev_id, std::string msg)
         else if (msg == "cert_expired") {
             BOOST_LOG_TRIVIAL(info) << "process_network_msg, cert_expired";
             if (!m_show_error_msgdlg) {
-                MessageDialog msg_dlg(nullptr, _L("The certificate has expired. Please check the time settings or update Escalop Workshop and try again."), "", wxAPPLY | wxOK);
+                MessageDialog msg_dlg(nullptr, _L("The certificate has expired. Please check the time settings or update TripleF3D and try again."), "", wxAPPLY | wxOK);
                 m_show_error_msgdlg = true;
                 msg_dlg.ShowModal();
                 m_show_error_msgdlg = false;
@@ -5994,7 +6065,7 @@ bool GUI_App::process_network_msg(std::string dev_id, std::string msg)
         else if (msg == "update_firmware_studio") {
             BOOST_LOG_TRIVIAL(info) << "process_network_msg, firmware internal error";
             if (!m_show_error_msgdlg) {
-                MessageDialog msg_dlg(nullptr, _L("Internal error. Please try upgrading the firmware and Escalop Workshop version. If the issue persists, contact support."), "", wxAPPLY | wxOK);
+                MessageDialog msg_dlg(nullptr, _L("Internal error. Please try upgrading the firmware and TripleF3D version. If the issue persists, contact support."), "", wxAPPLY | wxOK);
                 m_show_error_msgdlg = true;
                 msg_dlg.ShowModal();
                 m_show_error_msgdlg = false;
@@ -6005,12 +6076,12 @@ bool GUI_App::process_network_msg(std::string dev_id, std::string msg)
             BOOST_LOG_TRIVIAL(info) << "process_network_msg, unsigned_studio";
             MessageDialog
                 msg_dlg(nullptr,
-                        _L("To use Escalop Workshop with Bambu Lab printers, you need to enable LAN mode and Developer mode on your printer.\n\n"
+                        _L("To use TripleF3D with Bambu Lab printers, you need to enable LAN mode and Developer mode on your printer.\n\n"
                            "Please go to your printer's settings and:\n"
                            "1. Turn on LAN mode\n"
                            "2. Enable Developer mode\n\n"
                            "Developer mode allows the printer to work exclusively through local network access, "
-                           "enabling full functionality with Escalop Workshop."),
+                           "enabling full functionality with TripleF3D."),
                         _L("Network Plug-in Restriction"), wxAPPLY | wxOK);
             m_show_error_msgdlg = true;
             msg_dlg.ShowModal();
@@ -6193,7 +6264,7 @@ std::string GUI_App::format_display_version()
 {
     if (!version_display.empty()) return version_display;
 
-    version_display = ESCALOP_VERSION; // Escalop Workshop's own version, not OrcaSlicer's
+    version_display = ESCALOP_VERSION; // TripleF3D's own version, not OrcaSlicer's
     return version_display;
 }
 
@@ -6485,7 +6556,7 @@ bool GUI_App::maybe_migrate_user_presets_on_login()
     wxString source_description;
     if (source_is_bbl) {
         source_description = wxString::Format(
-            _L("your Escaloplab account profile (user ID: \"%s\")"),
+            _L("your TripleF3D account profile (user ID: \"%s\")"),
             from_u8(source_dir.filename().string()));
     } else if (source_is_default) {
         source_description = _L("your default profile");
@@ -6497,7 +6568,7 @@ bool GUI_App::maybe_migrate_user_presets_on_login()
 
     wxString msg = wxString::Format(
         _L("Existing user presets were found in %s.\n"
-           "Do you want to migrate them to your Escaloplab account profile?\n"
+           "Do you want to migrate them to your TripleF3D account profile?\n"
            "This will copy your presets so they are available under your new account."),
         source_description);
 
@@ -7868,14 +7939,14 @@ bool GUI_App::load_language(wxString language, bool initial)
 
     if (!wxLocale::IsAvailable(locale_language_info->Language)) {
     	// Loading the language dictionary failed.
-	    wxString message = "Switching Escalop Workshop to language " + requested_language_code + " failed.";
+	    wxString message = "Switching TripleF3D to language " + requested_language_code + " failed.";
 #if !defined(_WIN32) && !defined(__APPLE__)
         // likely some linux system
         message += "\nYou may need to reconfigure the missing locales, likely by running the \"locale-gen\" and \"dpkg-reconfigure locales\" commands.\n";
 #endif
         if (initial)
         	message + "\n\nApplication will close.";
-        wxMessageBox(message, "Escalop Workshop - Switching language failed", wxOK | wxICON_ERROR);
+        wxMessageBox(message, "TripleF3D - Switching language failed", wxOK | wxICON_ERROR);
         if (initial)
 			std::exit(EXIT_FAILURE);
 		else

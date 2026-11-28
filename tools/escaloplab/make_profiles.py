@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Generates the Escaloplab vendor profiles (resources/profiles/Escaloplab*).
+Generates the TripleF3D printer profiles (resources/profiles/Escaloplab*: the vendor keeps its old internal name
+"Escaloplab", which the app's profile updates and settings use; everything shown says TripleF3D).
 
 The v80 comes in four variants, one printer model each with a 0.4 mm nozzle preset: 220 bed (printable
 210 x 210) or 300 bed (printable 290 x 290), Bowden tube or direct drive; height 200, Marlin with auto bed
@@ -27,16 +28,27 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "resources" / "profiles"
-VENDOR = "Escaloplab"
-VERSION = "01.00.06.00"  # keep 01.00: a profile update (publish_profiles.py) needs the major.minor the app has
+VENDOR = "Escaloplab"   # internal vendor id (folder and file names), never shown
+BRAND = "TripleF3D"     # shown: printer and print quality names
+OLD_BRAND = "Escaloplab"  # names before TripleF3D (1.3.x): kept as "renamed_from", so saved presets and projects match
+VERSION = "01.00.07.00"  # keep 01.00: a profile update (publish_profiles.py) needs the major.minor the app has
 
 # (model name, bed X, bed Y, height, drive)
 MODELS = [
-    ("Escaloplab v80", 210, 210, 200, "bowden"),            # firmware: standard (= 220-bowden)
-    ("Escaloplab v80 Direct", 210, 210, 200, "direct"),     # 220-direct
-    ("Escaloplab v80 300", 290, 290, 200, "bowden"),        # 300-bowden
-    ("Escaloplab v80 300 Direct", 290, 290, 200, "direct"), # 300-direct
+    (f"{BRAND} v80", 210, 210, 200, "bowden"),            # firmware: standard (= 220-bowden)
+    (f"{BRAND} v80 Direct", 210, 210, 200, "direct"),     # 220-direct
+    (f"{BRAND} v80 300", 290, 290, 200, "bowden"),        # 300-bowden
+    (f"{BRAND} v80 300 Direct", 290, 290, 200, "direct"), # 300-direct
 ]
+
+
+def old_name(name):
+    return name.replace(BRAND, OLD_BRAND)
+
+
+def slug_of(model):
+    """File names of the bed model, texture and frame: still from the old name (only names on screen changed)."""
+    return old_name(model).lower().replace(" ", "_")
 
 PRUSA_PRINTER = "Prusa MK3S 0.4 nozzle"
 # The MK3S print qualities for a 0.4 mm nozzle, with the name they get on the v80
@@ -83,7 +95,7 @@ RETRACT = {"bowden": {"length": "5", "speed": "40"}, "direct": {"length": "0.8",
 
 # The MK3S start sequence for Marlin: G29 auto bed leveling instead of Prusa's G80
 START_GCODE = "\n".join([
-    "; Escaloplab v80 start (Prusa MK3S sequence, Marlin commands)",
+    "; TripleF3D v80 start (Prusa MK3S sequence, Marlin commands)",
     "G90 ; use absolute coordinates",
     "M83 ; extruder relative mode",
     "M104 S[first_layer_temperature] ; set extruder temp",
@@ -174,13 +186,14 @@ def printer_preset(name, x, y, h, drive):
     return {
         "type": "machine",
         "name": f"{name} 0.4 nozzle",
+        "renamed_from": old_name(f"{name} 0.4 nozzle"),
         "inherits": "fdm_machine_common",
         "from": "system",
         "instantiation": "true",
         "printer_model": name,
         "printer_variant": "0.4",
         "nozzle_diameter": ["0.4"],
-        "default_print_profile": "0.20mm Standard @Escaloplab v80",
+        "default_print_profile": f"0.20mm Standard @{BRAND} v80",
         "default_filament_profile": [f"{FILAMENT_BRANDS[0]} PLA @System"],
         "printable_area": ["0x0", f"{x}x0", f"{x}x{y}", f"0x{y}"],
         "printable_height": str(h),
@@ -208,7 +221,8 @@ def quality(prusa_name, name):
     settings = {k: v for k, v in prusa("process", prusa_name).items() if k not in META_KEYS}
     return {
         "type": "process",
-        "name": f"{name} @Escaloplab v80",
+        "name": f"{name} @{BRAND} v80",
+        "renamed_from": f"{name} @{OLD_BRAND} v80",
         "inherits": "fdm_process_common",
         "from": "system",
         "instantiation": "true",
@@ -231,7 +245,7 @@ def bed_stl(path: Path, x, y, radius=8, margin=3, steps=6):
         tris += [((0, 0, 0), (*p, 0), (*q, 0)), ((0, 0, -1), (*q, -1), (*p, -1))]
         tris += [((*p, 0), (*p, -1), (*q, -1)), ((*p, 0), (*q, -1), (*q, 0))]
     with open(path, "wb") as f:
-        f.write(b"Escaloplab v80 build plate".ljust(80, b" "))
+        f.write(b"TripleF3D v80 build plate".ljust(80, b" "))
         f.write(struct.pack("<I", len(tris)))
         for t in tris:
             f.write(struct.pack("<3f", 0, 0, 0))
@@ -272,7 +286,7 @@ def bed_texture(path: Path, x, y):
     cap = 9 * s  # 9 mm tall letters
     k = cap / cap_units
     d, cx, base = "", 24 * s, H - 14 * s
-    for ch in "ESCALOPLAB v80":
+    for ch in "TRIPLEF3D v80":
         if ch == " ":
             cx += cap * 0.5
             continue
@@ -358,7 +372,7 @@ def main():
     machines = [{"name": "fdm_machine_common", "sub_path": "machine/fdm_machine_common.json"}]
     processes = [{"name": "fdm_process_common", "sub_path": "process/fdm_process_common.json"}]
     for name, x, y, h, drive in MODELS:
-        slug = name.lower().replace(" ", "_")
+        slug = slug_of(name)
         dump(base / "machine" / f"{name}.json", model_file(name, slug))
         dump(base / "machine" / f"{name} 0.4 nozzle.json", {**printer_preset(name, x, y, h, drive), **OWNER.get("printers", {})})
         machine_models.append({"name": name, "sub_path": f"machine/{name}.json"})
@@ -373,10 +387,10 @@ def main():
 
     dump(OUT / f"{VENDOR}.json", {
         "name": VENDOR,
-        "url": "https://escaloplab.com",
+        "url": "https://triplef3d.com",
         "version": VERSION,
         "force_update": "0",
-        "description": "Escaloplab v80 configurations",
+        "description": "TripleF3D v80 configurations",
         "machine_model_list": machine_models,
         "process_list": processes,
         "filament_list": [],

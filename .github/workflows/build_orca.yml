@@ -134,7 +134,7 @@ jobs:
         if: runner.os == 'macOS' && !inputs.macos-combine-only && !vars.SELF_HOSTED
         run: |
           df -h /
-          # Escalop Workshop: keep the selected Xcode (macos-15 runners have no Xcode_15.4)
+          # TripleF3D: keep the selected Xcode (macos-15 runners have no Xcode_15.4)
           keep=$(basename "$(cd "$(xcode-select -p)/../.." && pwd -P)")
           sudo find /Applications -maxdepth 1 -type d -name "Xcode_*.app" ! -name "$keep" -exec rm -rf {} +
           sudo rm -rf ~/Library/Developer/CoreSimulator/Caches/*
@@ -247,10 +247,10 @@ jobs:
           source ${{ github.workspace }}/scripts/retry.sh
           mkdir -p ${{ github.workspace }}/build/universal/OrcaSlicer_dmg
           rm -rf ${{ github.workspace }}/build/universal/OrcaSlicer_dmg/*
-          # Escalop Workshop: the app keeps its internal bundle, shown as "Escalop Workshop" in Applications
-          cp -R ${{ github.workspace }}/build/universal/OrcaSlicer/OrcaSlicer.app "${{ github.workspace }}/build/universal/OrcaSlicer_dmg/Escalop Workshop.app"
+          # TripleF3D: the app keeps its internal bundle, shown as "TripleF3D" in Applications
+          cp -R ${{ github.workspace }}/build/universal/OrcaSlicer/OrcaSlicer.app "${{ github.workspace }}/build/universal/OrcaSlicer_dmg/TripleF3D.app"
           ln -sfn /Applications ${{ github.workspace }}/build/universal/OrcaSlicer_dmg/Applications
-          retry hdiutil create -volname "Escalop Workshop" -srcfolder ${{ github.workspace }}/build/universal/OrcaSlicer_dmg -ov -format UDZO EscalopWorkshop_Mac_universal_${{ env.ver }}.dmg
+          retry hdiutil create -volname "TripleF3D" -srcfolder ${{ github.workspace }}/build/universal/OrcaSlicer_dmg -ov -format UDZO TripleF3D_Mac_universal_${{ env.ver }}.dmg
           
           # Create separate OrcaSlicer_profile_validator DMG if the app exists
           if [ -f "${{ github.workspace }}/build/universal/OrcaSlicer/OrcaSlicer_profile_validator.app/Contents/MacOS/OrcaSlicer_profile_validator" ]; then
@@ -275,8 +275,8 @@ jobs:
         if: runner.os == 'macOS' && inputs.macos-combine-only
         uses: actions/upload-artifact@v7
         with:
-          name: EscalopWorkshop_Mac_universal_${{ env.ver }}
-          path: ${{ github.workspace }}/EscalopWorkshop_Mac_universal_${{ env.ver }}.dmg
+          name: TripleF3D_Mac_universal_${{ env.ver }}
+          path: ${{ github.workspace }}/TripleF3D_Mac_universal_${{ env.ver }}.dmg
 
       - name: Upload OrcaSlicer_profile_validator DMG mac
         if: runner.os == 'macOS' && inputs.macos-combine-only && !vars.SELF_HOSTED
@@ -374,8 +374,8 @@ jobs:
         if: runner.os == 'Windows' && !vars.SELF_HOSTED
         uses: actions/upload-artifact@v7
         with:
-          name: EscalopWorkshop_Windows_${{ env.ver }}${{ env.ARCH_SUFFIX }}
-          path: ${{ github.workspace }}/${{ env.BUILD_DIR }}/EscalopWorkshop*.exe
+          name: TripleF3D_Windows_${{ env.ver }}${{ env.ARCH_SUFFIX }}
+          path: ${{ github.workspace }}/${{ env.BUILD_DIR }}/TripleF3D*.exe
 
       - name: Upload artifacts Win PDB
         if: runner.os == 'Windows' && inputs.arch != 'arm64' && !vars.SELF_HOSTED

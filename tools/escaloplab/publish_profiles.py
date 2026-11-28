@@ -25,7 +25,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2] / "resources" / "profiles"
 VENDORS = ["OrcaFilamentLibrary", "Escaloplab"]
-MIN_APP = "1.3.8"  # raise when profiles use a setting older apps don't have
+MIN_APP = "1.4.0"  # raise when profiles use a setting older apps don't have (1.4.0: TripleF3D names)
 BASE_URL = "https://raw.githubusercontent.com/manosheriff/escalop-workshop/profiles"
 
 

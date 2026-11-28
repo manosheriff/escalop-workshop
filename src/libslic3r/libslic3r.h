@@ -2,12 +2,12 @@
 #define _libslic3r_h_
 
 #include "libslic3r_version.h"
-#define SLIC3R_APP_FULL_NAME "Escalop Workshop"
+#define SLIC3R_APP_FULL_NAME "TripleF3D"
 // Settings folder name (e.g. %APPDATA%\EscalopWorkshop), separate from OrcaSlicer's so both can be installed
 #define ESCALOP_DATA_KEY "EscalopWorkshop"
-#define GCODEVIEWER_APP_NAME "OrcaSlicer G-code Viewer"
+#define GCODEVIEWER_APP_NAME "TripleF3D G-code Viewer"
 #define GCODEVIEWER_APP_KEY  "OrcaSlicerGcodeViewer"
-#define GCODEVIEWER_BUILD_ID std::string("OrcaSlicer G-code Viewer-") + std::string(SLIC3R_VERSION) + std::string("-RC")
+#define GCODEVIEWER_BUILD_ID std::string("TripleF3D G-code Viewer-") + std::string(SLIC3R_VERSION) + std::string("-RC")
 
 // this needs to be included early for MSVC (listing it in Build.PL is not enough)
 #include <memory>

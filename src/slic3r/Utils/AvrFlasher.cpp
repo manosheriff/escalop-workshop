@@ -354,7 +354,7 @@ void AvrFlasher::flash(const std::string& port, const FirmwareImage& image, cons
         const auto answer = stk.expect_ok({CMD_READ_SIGNATURE_ISP, 0x04, 0x30, 0x00, i, 0x00});
         if (answer.size() < 3 || answer[2] != SIGNATURE[i]) {
             stk.leave();
-            throw RuntimeError(_u8L("This board isn't the Escaloplab v80's (ATmega2560). Nothing was changed."));
+            throw RuntimeError(_u8L("This board isn't the TripleF3D v80's (ATmega2560). Nothing was changed."));
         }
     }
     BOOST_LOG_TRIVIAL(info) << "Firmware: writing " << data.size() << " bytes to " << port;

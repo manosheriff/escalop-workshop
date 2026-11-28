@@ -1,6 +1,6 @@
 {
     "type": "machine_model",
-    "name": "Escaloplab v80",
+    "name": "TripleF3D v80",
     "model_id": "escaloplab_v80",
     "nozzle_diameter": "0.4",
     "machine_tech": "FFF",

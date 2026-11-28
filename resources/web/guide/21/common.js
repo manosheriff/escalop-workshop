@@ -243,6 +243,8 @@ function CreateVendorBlock(vendorName)
 		alt = "Custom Printer";
 	if( alt == "Other")
 		alt = "Orca colosseum";
+	if( alt == "Escaloplab")	// TripleF3D: the printers' internal vendor id
+		alt = "TripleF3D";
 	
 	return 	'<div class="OneVendorBlock" Vendor="' + vendorName + '">' +
 			'	<div class="BlockBanner">' +

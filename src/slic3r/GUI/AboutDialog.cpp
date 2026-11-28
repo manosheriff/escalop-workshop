@@ -147,9 +147,9 @@ wxString CopyrightsDialog::get_html_text()
                 "<font size=\"3\">",
          bgr_clr_str, text_clr_str, text_clr_str,
         _L("License"),
-        _L("Escalop Workshop is licensed under "),
+        _L("TripleF3D is licensed under "),
         "https://www.gnu.org/licenses/agpl-3.0.html",_L("GNU Affero General Public License, version 3"),
-        _L("Escalop Workshop is based on OrcaSlicer, which is based on PrusaSlicer and BambuStudio"),
+        _L("TripleF3D is based on OrcaSlicer, which is based on PrusaSlicer and BambuStudio"),
         _L("Libraries"),
         _L("This software uses open source components whose copyright and other proprietary rights belong to their respective owners"));
 
@@ -269,7 +269,7 @@ AboutDialog::AboutDialog()
     text_list.push_back(_L("Open-source slicing stands on a tradition of collaboration and attribution. Slic3r, created by Alessandro Ranellucci and the RepRap community, laid the foundation. PrusaSlicer by Prusa Research built on that work, Bambu Studio forked from PrusaSlicer, and SuperSlicer extended it with community-driven enhancements. Each project carried the work of its predecessors forward, crediting those who came before."));
     // Escaloplab: what this app is, with credit to OrcaSlicer, which it is built on
     text_list.push_back(_L("OrcaSlicer, a community slicer, began in that same spirit, drawing from PrusaSlicer, BambuStudio, SuperSlicer, and CuraSlicer."));
-    text_list.push_back(_L("Escalop Workshop is Escaloplab's slicer for the Escaloplab v80 3D printer. It is built on OrcaSlicer and, like it, its source code is open under the GNU Affero General Public License."));
+    text_list.push_back(_L("TripleF3D is the slicer for the TripleF3D v80 3D printer. It is built on OrcaSlicer and, like it, its source code is open under the GNU Affero General Public License."));
 
     text_sizer->Add( 0, 0, 0, wxTOP, FromDIP(33));
     bool is_zh = wxGetApp().app_config->get("language") == "zh_CN";

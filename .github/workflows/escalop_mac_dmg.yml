@@ -1,7 +1,7 @@
-# Escalop Workshop: packs the Apple-chip (arm64) Mac app of an earlier build run into a .dmg, for when GitHub has no
+# TripleF3D: packs the Apple-chip (arm64) Mac app of an earlier build run into a .dmg, for when GitHub has no
 # Intel Mac runner for the universal build. To use: set RUN_ID (the escalop_build.yml run) and VERSION, push to escalop.
-# The .dmg comes out as the artifact EscalopWorkshop_Mac_arm64_<runner>; attach it to the release by hand.
-name: Escalop Workshop Apple-chip dmg
+# The .dmg comes out as the artifact TripleF3D_Mac_arm64_<runner>; attach it to the release by hand.
+name: TripleF3D Apple-chip dmg
 
 on:
   push:
@@ -38,14 +38,14 @@ jobs:
           tar -xzf "$(find bundle -name '*.tar.gz' -print -quit)" -C .
           lipo -archs OrcaSlicer/OrcaSlicer.app/Contents/MacOS/OrcaSlicer
           mkdir dmg
-          # Same layout as the universal dmg: the app shows as "Escalop Workshop" in Applications
-          cp -R OrcaSlicer/OrcaSlicer.app "dmg/Escalop Workshop.app"
+          # Same layout as the universal dmg: the app shows as "TripleF3D" in Applications
+          cp -R OrcaSlicer/OrcaSlicer.app "dmg/TripleF3D.app"
           ln -s /Applications dmg/Applications
-          for i in 1 2 3; do hdiutil create -volname "Escalop Workshop" -srcfolder dmg -ov -format UDZO \
-            "EscalopWorkshop_Mac_AppleChip_V${VERSION}.dmg" && break; sleep 10; done
-          hdiutil verify "EscalopWorkshop_Mac_AppleChip_V${VERSION}.dmg"
+          for i in 1 2 3; do hdiutil create -volname "TripleF3D" -srcfolder dmg -ov -format UDZO \
+            "TripleF3D_Mac_AppleChip_V${VERSION}.dmg" && break; sleep 10; done
+          hdiutil verify "TripleF3D_Mac_AppleChip_V${VERSION}.dmg"
 
       - uses: actions/upload-artifact@v7
         with:
-          name: EscalopWorkshop_Mac_arm64_${{ matrix.os }}
-          path: EscalopWorkshop_Mac_AppleChip_V*.dmg
+          name: TripleF3D_Mac_arm64_${{ matrix.os }}
+          path: TripleF3D_Mac_AppleChip_V*.dmg

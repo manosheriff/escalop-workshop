@@ -1,25 +1,25 @@
 {
     "name": "Escaloplab",
-    "url": "https://escaloplab.com",
-    "version": "01.00.06.00",
+    "url": "https://triplef3d.com",
+    "version": "01.00.07.00",
     "force_update": "0",
-    "description": "Escaloplab v80 configurations",
+    "description": "TripleF3D v80 configurations",
     "machine_model_list": [
         {
-            "name": "Escaloplab v80",
-            "sub_path": "machine/Escaloplab v80.json"
+            "name": "TripleF3D v80",
+            "sub_path": "machine/TripleF3D v80.json"
         },
         {
-            "name": "Escaloplab v80 Direct",
-            "sub_path": "machine/Escaloplab v80 Direct.json"
+            "name": "TripleF3D v80 Direct",
+            "sub_path": "machine/TripleF3D v80 Direct.json"
         },
         {
-            "name": "Escaloplab v80 300",
-            "sub_path": "machine/Escaloplab v80 300.json"
+            "name": "TripleF3D v80 300",
+            "sub_path": "machine/TripleF3D v80 300.json"
         },
         {
-            "name": "Escaloplab v80 300 Direct",
-            "sub_path": "machine/Escaloplab v80 300 Direct.json"
+            "name": "TripleF3D v80 300 Direct",
+            "sub_path": "machine/TripleF3D v80 300 Direct.json"
         }
     ],
     "process_list": [
@@ -28,24 +28,24 @@
             "sub_path": "process/fdm_process_common.json"
         },
         {
-            "name": "0.10mm Detail @Escaloplab v80",
-            "sub_path": "process/0.10mm Detail @Escaloplab v80.json"
+            "name": "0.10mm Detail @TripleF3D v80",
+            "sub_path": "process/0.10mm Detail @TripleF3D v80.json"
         },
         {
-            "name": "0.15mm Quality @Escaloplab v80",
-            "sub_path": "process/0.15mm Quality @Escaloplab v80.json"
+            "name": "0.15mm Quality @TripleF3D v80",
+            "sub_path": "process/0.15mm Quality @TripleF3D v80.json"
         },
         {
-            "name": "0.20mm Standard @Escaloplab v80",
-            "sub_path": "process/0.20mm Standard @Escaloplab v80.json"
+            "name": "0.20mm Standard @TripleF3D v80",
+            "sub_path": "process/0.20mm Standard @TripleF3D v80.json"
         },
         {
-            "name": "0.20mm Speed @Escaloplab v80",
-            "sub_path": "process/0.20mm Speed @Escaloplab v80.json"
+            "name": "0.20mm Speed @TripleF3D v80",
+            "sub_path": "process/0.20mm Speed @TripleF3D v80.json"
         },
         {
-            "name": "0.30mm Draft @Escaloplab v80",
-            "sub_path": "process/0.30mm Draft @Escaloplab v80.json"
+            "name": "0.30mm Draft @TripleF3D v80",
+            "sub_path": "process/0.30mm Draft @TripleF3D v80.json"
         }
     ],
     "filament_list": [],
@@ -55,20 +55,20 @@
             "sub_path": "machine/fdm_machine_common.json"
         },
         {
-            "name": "Escaloplab v80 0.4 nozzle",
-            "sub_path": "machine/Escaloplab v80 0.4 nozzle.json"
+            "name": "TripleF3D v80 0.4 nozzle",
+            "sub_path": "machine/TripleF3D v80 0.4 nozzle.json"
         },
         {
-            "name": "Escaloplab v80 Direct 0.4 nozzle",
-            "sub_path": "machine/Escaloplab v80 Direct 0.4 nozzle.json"
+            "name": "TripleF3D v80 Direct 0.4 nozzle",
+            "sub_path": "machine/TripleF3D v80 Direct 0.4 nozzle.json"
         },
         {
-            "name": "Escaloplab v80 300 0.4 nozzle",
-            "sub_path": "machine/Escaloplab v80 300 0.4 nozzle.json"
+            "name": "TripleF3D v80 300 0.4 nozzle",
+            "sub_path": "machine/TripleF3D v80 300 0.4 nozzle.json"
         },
         {
-            "name": "Escaloplab v80 300 Direct 0.4 nozzle",
-            "sub_path": "machine/Escaloplab v80 300 Direct 0.4 nozzle.json"
+            "name": "TripleF3D v80 300 Direct 0.4 nozzle",
+            "sub_path": "machine/TripleF3D v80 300 Direct 0.4 nozzle.json"
         }
     ]
 }

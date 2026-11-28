@@ -151,7 +151,7 @@ wxBitmap circle_bitmap(int px) { return swatch(accent(), px); }
 std::vector<std::pair<std::string, wxString>> palette()
 {
     return {
-        {"#FF2E8A", _L("Escaloplab pink")},
+        {"#FF2E8A", _L("TripleF3D pink")},
         {"#2A9DF4", _L("Blue")},
         {"#22B573", _L("Green")},
         {"#00A79D", _L("Teal")},
@@ -205,7 +205,7 @@ void choose_accent(wxWindow* parent)
         show_error(parent, _L("The theme color could not be saved."));
         return;
     }
-    MessageDialog dlg(parent, _L("Escalop Workshop restarts to use the new color. Your project is kept if you save it when asked."),
+    MessageDialog dlg(parent, _L("TripleF3D restarts to use the new color. Your project is kept if you save it when asked."),
                       _L("Theme color"), wxOK | wxCANCEL | wxICON_INFORMATION);
     dlg.SetButtonLabel(wxID_OK, _L("Restart now"));
     dlg.SetButtonLabel(wxID_CANCEL, _L("Later"));

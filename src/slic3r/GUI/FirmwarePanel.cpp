@@ -130,7 +130,7 @@ FirmwarePanel::FirmwarePanel(wxWindow* parent)
         for (const auto& model : it->second.models)
             m_models.push_back(model.id);
     if (m_models.empty())
-        m_models = {"Escaloplab v80"};
+        m_models = {"TripleF3D v80"};
     // Start on the printer chosen in the slicer
     const std::string current = wxGetApp().preset_bundle->printers.get_edited_preset().config.opt_string("printer_model");
     m_model = std::find(m_models.begin(), m_models.end(), current) != m_models.end() ? current : m_models.front();
@@ -181,7 +181,7 @@ void FirmwarePanel::rebuild()
 
         auto* info = new wxBoxSizer(wxVERTICAL);
         info->Add(make_label(hero, _L("Firmware update"), Label::Head_24, text));
-        auto* intro = make_label(hero, _L("Install the newest Escaloplab firmware on your printer with a USB cable. "
+        auto* intro = make_label(hero, _L("Install the newest TripleF3D firmware on your printer with a USB cable. "
                                           "It takes about a minute."), Label::Body_14, soft);
         intro->Wrap(wrap);
         info->Add(intro, 0, wxTOP, FromDIP(6));
@@ -275,7 +275,7 @@ void FirmwarePanel::rebuild()
 
     // For a firmware file from Escaloplab support
     auto* footer = new wxBoxSizer(wxHORIZONTAL);
-    footer->Add(make_label(this, _L("Have a firmware file from Escaloplab support?"), Label::Body_13, soft), 0, wxALIGN_CENTER_VERTICAL);
+    footer->Add(make_label(this, _L("Have a firmware file from TripleF3D support?"), Label::Body_13, soft), 0, wxALIGN_CENTER_VERTICAL);
     m_file_link = new HyperLink(this, _L("Install it from this computer"));
     m_file_link->SetFont(Label::Body_13);
     m_file_link->SetBackgroundColour(page_bg);
@@ -505,7 +505,7 @@ void FirmwarePanel::check_printer()
                 text = format_wxstr(_L("On the printer now: %1%"), info->firmware_name);
                 // "Marlin ... Escaloplab-1.7.4 (300-bowden) (Nov 22 2026 ...)": the variant it was built for
                 std::smatch m;
-                if (std::regex_search(info->firmware_name, m, std::regex(R"(Escaloplab-[0-9.]+ \(([a-z0-9-]{1,16})\))")))
+                if (std::regex_search(info->firmware_name, m, std::regex(R"((?:Escaloplab|TripleF3D)-[0-9.]+ \(([a-z0-9-]{1,16})\))")))
                     variant = m[1].str();
                 if (!info->machine_type.empty())
                     text += wxString::FromUTF8(" Â· ") + from_u8(info->machine_type);

@@ -69,7 +69,7 @@ static const std::vector<std::string> filament_types = {"PLA",    "rPLA",  "PLA+
                                                         "PETGCF", "PTBA",  "PTBA90A",   "PEEK",  "TPU93A", "TPU75D", "TPU",       "TPU92A", "TPU98A", "Misc",
                                                         "TPE",    "GLAZE", "Nylon",     "CPE",   "METAL",  "ABST",   "Carbon Fiber", "SBS"};
 
-// Escalop Workshop: Escaloplab first
+// TripleF3D: Escaloplab first
 static const std::vector<std::string> printer_vendors = 
     {"Escaloplab",         "Anker",              "Anycubic",           "Artillery",          "Bambulab",           "BIQU",
      "Blocks",             "Chuanying",          "Co Print",           "Comgrow",            "CONSTRUCT3D",
@@ -83,7 +83,7 @@ static const std::vector<std::string> printer_vendors =
      "Vzbot",              "Wanhao",             "Z-Bolt"};
 
 static const std::unordered_map<std::string, std::vector<std::string>> printer_model_map =
-    {{"Escaloplab",        {"Escaloplab v80"}},
+    {{"Escaloplab",        {"TripleF3D v80"}},
      {"Anker",             {"Anker M5",                   "Anker M5 All-Metal Hot End", "Anker M5C"}},
      {"Anycubic",          {"Anycubic i3 Mega S",    "Anycubic Chiron",       "Anycubic Vyper",        "Anycubic Kobra",        "Anycubic Kobra Max",
                             "Anycubic Kobra Plus",   "Anycubic 4Max Pro",     "Anycubic 4Max Pro 2",   "Anycubic Kobra 2",      "Anycubic Kobra 2 Plus",
@@ -3492,7 +3492,7 @@ CreatePresetSuccessfulDialog::CreatePresetSuccessfulDialog(wxWindow *parent, con
         success_text = new wxStaticText(this, wxID_ANY, _L("Filament Created"));
         wxString prompt_text = _L("Please go to filament setting to edit your presets if you need.\nPlease note that nozzle temperature, hot bed temperature, and maximum "
                                   "volumetric speed has a significant impact on printing quality. Please set them carefully.");
-        wxString sync_text = sync_user_preset_need_enabled ? _L("\n\nEscalop Workshop has detected that your user presets synchronization function is not enabled, "
+        wxString sync_text = sync_user_preset_need_enabled ? _L("\n\nTripleF3D has detected that your user presets synchronization function is not enabled, "
                                                                 "which may result in unsuccessful Filament settings on the Device page.\n"
                                                                 "Click \"Sync user presets\" to enable the synchronization function.") : "";
         next_step_text = new wxStaticText(this, wxID_ANY, prompt_text + sync_text);

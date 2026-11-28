@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-Publishes the owner's own presets as the built-in Escaloplab presets of every Escalop Workshop.
+Publishes the owner's own presets as the built-in TripleF3D presets of every TripleF3D app.
 
 The owner tunes three kinds of presets in the app, each saved as "<built-in name> - Main":
-  printer  "Escaloplab v80 0.4 nozzle - Main"         -> its changes go into every v80 printer (all four)
-  process  "<quality> @Escaloplab v80 - Main"          -> into that print quality
+  printer  "TripleF3D v80 0.4 nozzle - Main"          -> its changes go into every v80 printer (all four)
+  process  "<quality> @TripleF3D v80 - Main"           -> into that print quality
   filament "<brand> <type> @System - Main"             -> into that filament (Patron / Lynx only)
 Only the settings changed in a "- Main" preset count; the rest stays as make_profiles.py makes it.
 
@@ -47,14 +47,17 @@ def user_folders():
 
 
 def read_owner_presets():
-    built_in = {"printers": set(), "processes": set(), "filaments": set()}
-    for f in (REPO / "resources/profiles/Escaloplab/machine").glob("*0.4 nozzle.json"):
-        built_in["printers"].add(f.stem)
-    for f in (REPO / "resources/profiles/Escaloplab/process").glob("*@Escaloplab v80.json"):
-        built_in["processes"].add(f.stem)
-    for f in (REPO / "resources/profiles/OrcaFilamentLibrary/filament").glob("*/*.json"):
-        if f.parent.name in ("Patron", "Lynx"):
-            built_in["filaments"].add(f.stem)
+    # name (or old name, "renamed_from") -> built-in name
+    built_in = {"printers": {}, "processes": {}, "filaments": {}}
+    for kind, files in (("printers", (REPO / "resources/profiles/Escaloplab/machine").glob("*0.4 nozzle.json")),
+                        ("processes", (REPO / "resources/profiles/Escaloplab/process").glob("*@* v80.json")),
+                        ("filaments", [f for f in (REPO / "resources/profiles/OrcaFilamentLibrary/filament").glob("*/*.json")
+                                       if f.parent.name in ("Patron", "Lynx")])):
+        for f in files:
+            d = json.loads(f.read_text(encoding="utf-8"))
+            built_in[kind][f.stem] = f.stem
+            if d.get("renamed_from"):
+                built_in[kind][d["renamed_from"]] = f.stem
 
     found = {"printers": {}, "processes": {}, "filaments": {}}
     sources = []
@@ -62,9 +65,9 @@ def read_owner_presets():
         for sub, kind in (("machine", "printers"), ("process", "processes"), ("filament", "filaments")):
             for f in sorted((folder / sub).glob(f"*{SUFFIX}.json")):
                 d = json.loads(f.read_text(encoding="utf-8"))
-                base = d.get("inherits", "")
-                if base not in built_in[kind]:
-                    print(f"  skipped {f.stem}: it isn't based on an Escaloplab preset ({base or 'no base'})")
+                base = built_in[kind].get(d.get("inherits", ""))
+                if not base:
+                    print(f"  skipped {f.stem}: it isn't based on a TripleF3D preset ({d.get('inherits') or 'no base'})")
                     continue
                 settings = {k: v for k, v in d.items() if k not in SKIP}
                 if kind == "printers":
@@ -78,7 +81,7 @@ def read_owner_presets():
 def built_in_value(kind, name, key):
     """What customers have now (the generated presets already hold earlier published changes)."""
     if kind == "printers":
-        folder, name = REPO / "resources/profiles/Escaloplab", "Escaloplab v80 0.4 nozzle"
+        folder, name = REPO / "resources/profiles/Escaloplab", "TripleF3D v80 0.4 nozzle"
     elif kind == "processes":
         folder = REPO / "resources/profiles/Escaloplab"
     else:
@@ -119,7 +122,7 @@ def main():
     for s in sources:
         print("  " + s)
     if not sources:
-        sys.exit("None found. Save a preset as '<name> - Main' in Escalop Workshop first.")
+        sys.exit("None found. Save a preset as '<name> - Main' in TripleF3D first.")
     before = json.loads(OWNER_FILE.read_text(encoding="utf-8")) if OWNER_FILE.exists() else {}
     for _ in range(3):
         if subprocess.run(["git", "fetch", "-q", "origin", "escalop", "profiles"], cwd=REPO).returncode == 0:
@@ -149,7 +152,7 @@ def main():
                 print(f"  {title or name}")
                 print("\n".join(lines))
 
-    if input("\nPublish this to every Escalop Workshop now? Type yes: ").strip().lower() not in ("yes", "y"):
+    if input("\nPublish this to every TripleF3D app now? Type yes: ").strip().lower() not in ("yes", "y"):
         print("Nothing published.")
         return
 
@@ -175,7 +178,7 @@ def main():
     # 3. Commit (only these files) and push escalop when nothing else is waiting
     paths = ["resources/profiles", "tools/escaloplab/make_profiles.py", "tools/escaloplab/owner_presets.json"]
     run("git", "add", "--", *paths)
-    run("git", "commit", "-q", "-m", f"Escaloplab profiles {version}: the owner's presets ({', '.join(sources)}) [skip ci]", "--", *paths)
+    run("git", "commit", "-q", "-m", f"TripleF3D profiles {version}: the owner's presets ({', '.join(sources)}) [skip ci]", "--", *paths)
     ahead = run("git", "rev-list", "origin/escalop..HEAD").split()
     if len(ahead) == 1:
         pushed = any(subprocess.run(["git", "push", "-q", "origin", "HEAD:escalop"], cwd=REPO).returncode == 0
@@ -198,7 +201,7 @@ def publish_feed(version):
     run("git", "commit", "-q", "-m", f"Profiles {version}: the owner's presets", cwd=FEED)
     if not any(subprocess.run(["git", "push", "-q", "origin", "profiles"], cwd=FEED).returncode == 0 for _ in range(4)):
         sys.exit("Couldn't reach GitHub to publish. Run it again later: it picks up from here.")
-    print(f"\nPublished: Escaloplab profiles {version}. Every Escalop Workshop installs them at its next start.")
+    print(f"\nPublished: TripleF3D profiles {version}. Every TripleF3D app (1.4.0 and later) installs them at its next start.")
 
 if __name__ == "__main__":
     main()

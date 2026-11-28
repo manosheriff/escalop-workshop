@@ -55,9 +55,9 @@ namespace Slic3r {
 namespace {
 // Escaloplab: sign in with the escaloplab.com account. The website and the app share one Supabase
 // project (the login page lives at escaloplab.com/workshop/login); there is no preset sync service yet.
-constexpr const char* ORCA_DEFAULT_API_URL = "https://escaloplab.com/api/workshop";
+constexpr const char* ORCA_DEFAULT_API_URL = "https://triplef3d.com/api/workshop";
 constexpr const char* ORCA_DEFAULT_AUTH_URL = "https://kcqljxqfsfxwqytufsrt.supabase.co";
-constexpr const char* ORCA_DEFAULT_CLOUD_URL = "https://escaloplab.com";
+constexpr const char* ORCA_DEFAULT_CLOUD_URL = "https://triplef3d.com";
 // Public key with no secret (the same one the website uses in the browser), identifies the app to Supabase.
 constexpr const char* ORCA_DEFAULT_PUB_KEY = "sb_publishable_5KfyZLY5rwdXu14t8n2C6g_65Wb_-tb";
 

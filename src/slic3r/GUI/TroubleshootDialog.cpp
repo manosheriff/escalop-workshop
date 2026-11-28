@@ -966,7 +966,7 @@ void TroubleshootDialog::RebuildSystemProfiles()
     
     MessageDialog msg(this,
         _L("Restart Required") + "\n" +
-        _L("Please make sure any instances of Escalop Workshop are not running") + "\n" +
+        _L("Please make sure any instances of TripleF3D are not running") + "\n" +
         _L("Do you want to continue?")
         , wxString(SLIC3R_APP_FULL_NAME), wxICON_QUESTION | wxOK | wxCANCEL
     );

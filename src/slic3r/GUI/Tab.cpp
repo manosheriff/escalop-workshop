@@ -2225,7 +2225,8 @@ void Tab::update_preset_description_line()
     if (parent && parent->vendor)
     {
         description_line += "\n\n" + _(L("Additional information:")) + "\n";
-        description_line += "\t" + _(L("vendor")) + ": " + (m_type == Slic3r::Preset::TYPE_PRINTER ? "\n\t\t" : "") + parent->vendor->name +
+        description_line += "\t" + _(L("vendor")) + ": " + (m_type == Slic3r::Preset::TYPE_PRINTER ? "\n\t\t" : "") +
+                            (parent->vendor->name == "Escaloplab" ? std::string("TripleF3D") : parent->vendor->name) + // the printers' internal vendor id
                             ", ver: " + parent->vendor->config_version.to_string();
         if (m_type == Slic3r::Preset::TYPE_PRINTER) {
             const std::string &printer_model = preset.config.opt_string("printer_model");

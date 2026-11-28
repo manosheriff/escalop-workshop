@@ -928,12 +928,12 @@ endif ()
 install(FILES ${CMAKE_SOURCE_DIR}/LICENSE.txt DESTINATION ".")
 configure_file(${LIBDIR}/dev-utils/platform/unix/fhs.hpp.in ${LIBDIR_BIN}/dev-utils/platform/unix/fhs.hpp)
 
-set (CPACK_PACKAGE_NAME "Escalop Workshop")
-set (CPACK_PACKAGE_VENDOR "Escaloplab")
+set (CPACK_PACKAGE_NAME "TripleF3D")
+set (CPACK_PACKAGE_VENDOR "TripleF3D")
 set (CPACK_PACKAGE_VERSION_MAJOR "${ORCA_VERSION_MAJOR}")
 set (CPACK_PACKAGE_VERSION_MINOR "${ORCA_VERSION_MINOR}")
 set (CPACK_PACKAGE_VERSION_PATCH "${ORCA_VERSION_PATCH}")
-set (CPACK_PACKAGE_FILE_NAME "EscalopWorkshop_Windows_Installer_V${ESCALOP_VERSION}")
+set (CPACK_PACKAGE_FILE_NAME "TripleF3D_Windows_Installer_V${ESCALOP_VERSION}")
 # Suffix the Windows installer with its target arch so the x64 and arm64 builds
 # produce distinct filenames (matches ARCH_SUFFIX in build_orca.yml). Same
 # CMAKE_SYSTEM_PROCESSOR mapping used by orcaslicer_copy_dlls() above.
@@ -944,29 +944,31 @@ if (WIN32)
         string (APPEND CPACK_PACKAGE_FILE_NAME "_x64")
     endif ()
 endif ()
-set (CPACK_PACKAGE_DESCRIPTION_SUMMARY "Escalop Workshop is Escaloplab's slicer for the Escaloplab v80, based on OrcaSlicer")
-set (CPACK_PACKAGE_HOMEPAGE_URL "https://escaloplab.com")
+set (CPACK_PACKAGE_DESCRIPTION_SUMMARY "TripleF3D is the slicer for the TripleF3D v80, based on OrcaSlicer")
+set (CPACK_PACKAGE_HOMEPAGE_URL "https://triplef3d.com")
 set (CPACK_PACKAGE_INSTALL_DIRECTORY ${CPACK_PACKAGE_NAME})
 set (CPACK_PACKAGE_ICON "${CMAKE_SOURCE_DIR}/resources/images\\\\OrcaSlicer.ico")
 set (CPACK_NSIS_MUI_ICON "${CPACK_PACKAGE_ICON}")
 set (CPACK_NSIS_MUI_UNIICON "${CPACK_PACKAGE_ICON}")
 set (CPACK_NSIS_INSTALLED_ICON_NAME  "$INSTDIR\\\\orca-slicer.exe")
 set (CPACK_PACKAGE_CHECKSUM SHA256)
-set (CPACK_PACKAGE_INSTALL_REGISTRY_KEY "EscalopWorkshop")
+set (CPACK_PACKAGE_INSTALL_REGISTRY_KEY "EscalopWorkshop") # TripleF3D: kept, so the installer finds and removes Escalop Workshop
 set (CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL ON)
 set (CPACK_NSIS_EXECUTABLES_DIRECTORY ".")
 # set (CPACK_NSIS_MODIFY_PATH "ON")
-set(CPACK_PACKAGE_EXECUTABLES "orca-slicer;Escalop Workshop")
-# Escaloplab: always put Escalop Workshop on the desktop and in the Start menu, even if the
+set(CPACK_PACKAGE_EXECUTABLES "orca-slicer;TripleF3D")
+# Escaloplab: always put TripleF3D on the desktop and in the Start menu, even if the
 # "Do not create shortcuts" box is ticked (the owner lost the app that way)
 set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS "
-  CreateShortCut \\\"$DESKTOP\\\\Escalop Workshop.lnk\\\" \\\"$INSTDIR\\\\orca-slicer.exe\\\" \\\"\\\" \\\"$INSTDIR\\\\resources\\\\images\\\\EscalopWorkshop.ico\\\"
-  CreateShortCut \\\"$SMPROGRAMS\\\\Escalop Workshop.lnk\\\" \\\"$INSTDIR\\\\orca-slicer.exe\\\" \\\"\\\" \\\"$INSTDIR\\\\resources\\\\images\\\\EscalopWorkshop.ico\\\"
+  Delete \\\"$DESKTOP\\\\Escalop Workshop.lnk\\\"
+  Delete \\\"$SMPROGRAMS\\\\Escalop Workshop.lnk\\\"
+  CreateShortCut \\\"$DESKTOP\\\\TripleF3D.lnk\\\" \\\"$INSTDIR\\\\orca-slicer.exe\\\" \\\"\\\" \\\"$INSTDIR\\\\resources\\\\images\\\\EscalopWorkshop.ico\\\"
+  CreateShortCut \\\"$SMPROGRAMS\\\\TripleF3D.lnk\\\" \\\"$INSTDIR\\\\orca-slicer.exe\\\" \\\"\\\" \\\"$INSTDIR\\\\resources\\\\images\\\\EscalopWorkshop.ico\\\"
   System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0, i 0, i 0)'
 ")
 set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "
-  Delete \\\"$DESKTOP\\\\Escalop Workshop.lnk\\\"
-  Delete \\\"$SMPROGRAMS\\\\Escalop Workshop.lnk\\\"
+  Delete \\\"$DESKTOP\\\\TripleF3D.lnk\\\"
+  Delete \\\"$SMPROGRAMS\\\\TripleF3D.lnk\\\"
 ")
 set (CPACK_RESOURCE_FILE_LICENSE ${CMAKE_SOURCE_DIR}/LICENSE.txt) # must also include in install command
 

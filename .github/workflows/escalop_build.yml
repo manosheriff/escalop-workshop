@@ -1,7 +1,7 @@
-# Escalop Workshop: builds the Windows x64 installer and the macOS universal app.
+# TripleF3D: builds the Windows x64 installer and the macOS universal app.
 # Same chain as build_all.yml (cache check -> dependencies -> app), without the
 # Linux, Flatpak, Windows ARM and unit-test jobs OrcaSlicer runs upstream.
-name: Escalop Workshop build
+name: TripleF3D build
 
 on:
   push:
@@ -34,10 +34,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch: [arm64, x86_64]
+        # TripleF3D: the Intel half on GitHub's Intel Macs (macos-15 often had no runner free for it)
+        include:
+          - arch: arm64
+            os: macos-15
+          - arch: x86_64
+            os: macos-15-intel
     uses: ./.github/workflows/build_check_cache.yml
     with:
-      os: macos-15
+      os: ${{ matrix.os }}
       arch: ${{ matrix.arch }}
     secrets: inherit
   build_macos_universal:

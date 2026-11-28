@@ -156,8 +156,8 @@ void PrinterPage::on_printer_status(const std::string& host, long done, const st
     m_done_seen = done;
 
     const wxString title = _L("Print finished");
-    const wxString text  = file.empty() ? _L("Your Escaloplab printer finished printing.") :
-                                          format_wxstr(_L("Your Escaloplab printer finished %1%."), from_u8(file));
+    const wxString text  = file.empty() ? _L("Your TripleF3D printer finished printing.") :
+                                          format_wxstr(_L("Your TripleF3D printer finished %1%."), from_u8(file));
     wxNotificationMessage note(title, text, wxGetApp().mainframe);
     note.Show(wxNotificationMessage::Timeout_Auto);
     if (wxGetApp().mainframe)
@@ -241,7 +241,7 @@ void PrinterPage::refresh_find_page()
 
     wxString status;
     if (m_searching)
-        status = _L("Looking for Escaloplab printers on your network...");
+        status = _L("Looking for TripleF3D printers on your network...");
     else if (!m_found.empty())
         status = m_found.size() == 1 ? _L("Found your printer. Click it to connect:") : _L("Choose your printer by its serial number:");
     else
@@ -252,7 +252,7 @@ void PrinterPage::refresh_find_page()
 
     m_list->Clear(true);
     for (const Found& f : m_found) {
-        wxString label = wxString::Format(_L("Escaloplab v80  ·  Serial %s"), from_u8(f.serial));
+        wxString label = wxString::Format(_L("TripleF3D v80  ·  Serial %s"), from_u8(f.serial));
         auto*    btn   = new Button(m_find, label + "      " + from_u8(f.host));
         btn->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
         btn->SetMinSize(wxSize(FromDIP(420), FromDIP(40)));
@@ -306,7 +306,7 @@ namespace {
 bool is_escaloplab(const Preset& p)
 {
     const auto* model = p.config.option<ConfigOptionString>("printer_model");
-    return model && boost::starts_with(model->value, "Escaloplab");
+    return model && (boost::starts_with(model->value, "TripleF3D") || boost::starts_with(model->value, "Escaloplab"));
 }
 
 void set_host(DynamicPrintConfig& cfg, const std::string& host)

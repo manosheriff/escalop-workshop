@@ -1,9 +1,10 @@
 {
     "type": "process",
-    "name": "0.30mm Draft @Escaloplab v80",
+    "name": "0.30mm Draft @TripleF3D v80",
+    "renamed_from": "0.30mm Draft @Escaloplab v80",
     "inherits": "fdm_process_common",
     "from": "system",
-    "setting_id": "QvIJR7gxONYnendE",
+    "setting_id": "QmHac8Ox0PUg4QYJ",
     "instantiation": "true",
     "bottom_shell_thickness": "0.5",
     "bottom_surface_pattern": "monotonic",
@@ -141,9 +142,9 @@
     "top_surface_speed": "40",
     "wall_loops": "2",
     "compatible_printers": [
-        "Escaloplab v80 0.4 nozzle",
-        "Escaloplab v80 Direct 0.4 nozzle",
-        "Escaloplab v80 300 0.4 nozzle",
-        "Escaloplab v80 300 Direct 0.4 nozzle"
+        "TripleF3D v80 0.4 nozzle",
+        "TripleF3D v80 Direct 0.4 nozzle",
+        "TripleF3D v80 300 0.4 nozzle",
+        "TripleF3D v80 300 Direct 0.4 nozzle"
     ]
 }

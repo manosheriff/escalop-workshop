@@ -1,16 +1,17 @@
 {
     "type": "machine",
-    "name": "Escaloplab v80 300 0.4 nozzle",
+    "name": "TripleF3D v80 300 0.4 nozzle",
+    "renamed_from": "Escaloplab v80 300 0.4 nozzle",
     "inherits": "fdm_machine_common",
     "from": "system",
-    "setting_id": "wb4DXJI6GmIdhHP1",
+    "setting_id": "9MTfz1NJVE72l7qS",
     "instantiation": "true",
-    "printer_model": "Escaloplab v80 300",
+    "printer_model": "TripleF3D v80 300",
     "printer_variant": "0.4",
     "nozzle_diameter": [
         "0.4"
     ],
-    "default_print_profile": "0.20mm Standard @Escaloplab v80",
+    "default_print_profile": "0.20mm Standard @TripleF3D v80",
     "default_filament_profile": [
         "Patron PLA @System"
     ],
@@ -30,7 +31,7 @@
     "deretraction_speed": [
         "40"
     ],
-    "printer_settings_id": "Escaloplab v80 300 0.4 nozzle",
-    "machine_start_gcode": "; Escaloplab v80 start (Prusa MK3S sequence, Marlin commands)\nG90 ; use absolute coordinates\nM83 ; extruder relative mode\nM104 S[first_layer_temperature] ; set extruder temp\nM140 S[first_layer_bed_temperature] ; set bed temp\nM190 S[first_layer_bed_temperature] ; wait for bed temp\nM109 S[first_layer_temperature] ; wait for extruder temp\nG28 ; home all axes\nG29 ; auto bed leveling\nG1 Z0.2 F720\nG1 X0 Y1 F3000 ; front edge of the bed\nG92 E0\nG1 X60 E9 F1000 ; intro line\nG1 X100 E12.5 F1000 ; intro line\nG92 E0\nM221 S{if layer_height<0.075}100{else}95{endif}",
+    "printer_settings_id": "TripleF3D v80 300 0.4 nozzle",
+    "machine_start_gcode": "; TripleF3D v80 start (Prusa MK3S sequence, Marlin commands)\nG90 ; use absolute coordinates\nM83 ; extruder relative mode\nM104 S[first_layer_temperature] ; set extruder temp\nM140 S[first_layer_bed_temperature] ; set bed temp\nM190 S[first_layer_bed_temperature] ; wait for bed temp\nM109 S[first_layer_temperature] ; wait for extruder temp\nG28 ; home all axes\nG29 ; auto bed leveling\nG1 Z0.2 F720\nG1 X0 Y1 F3000 ; front edge of the bed\nG92 E0\nG1 X60 E9 F1000 ; intro line\nG1 X100 E12.5 F1000 ; intro line\nG92 E0\nM221 S{if layer_height<0.075}100{else}95{endif}",
     "machine_end_gcode": "{if max_layer_z < max_print_height}G1 Z{z_offset+min(max_layer_z+1, max_print_height)} F720 ; Move print head up{endif}\nG1 X0 Y200 F3600 ; park\n{if max_layer_z < max_print_height}G1 Z{z_offset+min(max_layer_z+49, max_print_height)} F720 ; Move print head further up{endif}\nG4 ; wait\nM221 S100 ; reset flow\nM104 S0 ; turn off temperature\nM140 S0 ; turn off heatbed\nM107 ; turn off fan\nM84 ; disable motors\n; max_layer_z = [max_layer_z]"
 }
